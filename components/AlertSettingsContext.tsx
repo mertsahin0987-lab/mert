@@ -41,7 +41,7 @@ type AlertSettingsContextValue = {
   resetToDefaults: () => void;
 };
 
-const STORAGE_KEY = 'mysection:alert-settings';
+const STORAGE_KEY = 'clipprr:alert-settings';
 
 const AlertSettingsContext = createContext<AlertSettingsContextValue | undefined>(undefined);
 

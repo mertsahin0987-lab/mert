@@ -82,12 +82,12 @@ export default function ProductDetailScreen() {
         if (typeof navigator !== 'undefined' && (navigator as any).share) {
           await (navigator as any).share({
             title: product.name,
-            text: `Check out ${product.brand} ${product.name} on MySection`,
+            text: `Check out ${product.brand} ${product.name} on Clipprr`,
           });
         }
       } else {
         await Share.share({
-          message: `Check out ${product.brand} ${product.name} on MySection`,
+          message: `Check out ${product.brand} ${product.name} on Clipprr`,
         });
       }
     } catch {

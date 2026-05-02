@@ -40,7 +40,7 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          headerTitle: 'MySection',
+          headerTitle: 'Clipprr',
           headerTitleStyle: {
             fontSize: 22,
             fontWeight: '800',

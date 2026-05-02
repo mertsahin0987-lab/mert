@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "MySection",
-    "slug": "MySection",
+    "name": "Clipprr",
+    "slug": "clipprr",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "mysection",
+    "scheme": "clipprr",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {

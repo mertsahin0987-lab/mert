@@ -49,13 +49,34 @@ const supabase = createClient(URL, SERVICE_KEY, {
 // Brand list — Coolblades slug → our DB brand name
 // ============================================================================
 
-const BRANDS = [
-  { slug: 'wahl',          dbName: 'Wahl' },
-  { slug: 'babyliss-pro',  dbName: 'BaByliss PRO' },
-  { slug: 'andis',         dbName: 'Andis' },
-  { slug: 'jrl',           dbName: 'JRL' },
-  { slug: 'stylecraft',    dbName: 'StyleCraft' },
-];
+// Per-retailer config. Each entry tells us how to walk that retailer's catalogue.
+// Coolblades (BigCommerce) has /<slug>/ pages we scrape via HTML.
+// Salons Direct (Shopify) has /collections/<slug>/products.json — clean JSON.
+const RETAILERS = {
+  coolblades: {
+    retailerId: 'coolblades',
+    type: 'bigcommerce',
+    brands: [
+      { slug: 'wahl',          dbName: 'Wahl' },
+      { slug: 'babyliss-pro',  dbName: 'BaByliss PRO' },
+      { slug: 'andis',         dbName: 'Andis' },
+      { slug: 'jrl',           dbName: 'JRL' },
+      { slug: 'stylecraft',    dbName: 'StyleCraft' },
+    ],
+  },
+  'salons-direct': {
+    retailerId: 'salons-direct',
+    type: 'shopify',
+    brands: [
+      { slug: 'wahl-clippers-trimmers',          dbName: 'Wahl' },
+      { slug: 'babyliss-pro-clippers-trimmers',  dbName: 'BaByliss PRO' },
+      { slug: 'andis',                            dbName: 'Andis' },
+    ],
+  },
+};
+
+// Backwards-compatibility for the old --brand=<slug> CLI flag (Coolblades only)
+const BRANDS = RETAILERS.coolblades.brands;
 
 // ============================================================================
 // Filtering — keep only "real" barber tools, drop accessories/spares/grooming
@@ -100,7 +121,33 @@ function shouldKeep(name, price) {
 // Scrape a brand catalogue page
 // ============================================================================
 
-async function getBrandCatalogue(slug) {
+// Salons Direct (Shopify) — uses Shopify's standard products.json endpoint
+async function getShopifyCollection(host, collectionSlug) {
+  log.info(`Fetching ${host}/collections/${collectionSlug}/products.json`);
+  const products = [];
+  for (let page = 1; page <= 5; page++) {
+    const url = `https://${host}/collections/${collectionSlug}/products.json?limit=250&page=${page}`;
+    const text = await fetchHtml(url);
+    const data = JSON.parse(text);
+    const batch = data.products ?? [];
+    if (!batch.length) break;
+    for (const p of batch) {
+      const variant = p.variants?.[0];
+      const price = parsePrice(variant?.price);
+      const imageUrl = (p.images?.[0]?.src ?? '').split('?')[0];
+      products.push({
+        name: p.title,
+        url: `https://${host}/products/${p.handle}`,
+        imageUrl,
+        price,
+      });
+    }
+    if (batch.length < 250) break;
+  }
+  return products;
+}
+
+async function getCoolbladesBrand(slug) {
   const url = `https://www.coolblades.co.uk/${slug}/?limit=200`;
   log.info(`Fetching /${slug}/?limit=200`);
   const html = await fetchHtml(url);
@@ -134,6 +181,9 @@ async function getBrandCatalogue(slug) {
     }
     // Coolblades sometimes serves placeholder images — replace with no-img marker
     if (/no_image|placeholder/i.test(imageUrl)) imageUrl = '';
+    // Upgrade BigCommerce CDN URLs to HD (1280x1280) — the listing page serves
+    // thumbnails by default but the same CDN endpoint serves any size.
+    imageUrl = imageUrl.replace(/\/stencil\/[^/]+\//, '/stencil/1280x1280/');
 
     // Price — usually in aria-label of the link, or in a price element
     const priceText =
@@ -218,64 +268,74 @@ async function upsertPrice({ productId, retailerId, price, url, inStock }) {
 // Main
 // ============================================================================
 
-console.log('\n📦 Coolblades catalogue importer\n');
-if (DRY_RUN) console.log('  (dry-run mode — no DB writes)\n');
+const RETAILER_FILTER = args.retailer || null;
 
-const brandsToProcess = BRAND_FILTER
-  ? BRANDS.filter((b) => b.slug === BRAND_FILTER)
-  : BRANDS;
+console.log('\n📦 Catalogue importer\n');
+if (DRY_RUN) console.log('  (dry-run mode — no DB writes)\n');
 
 const stats = { scraped: 0, kept: 0, skipped: 0, new: 0, dup: 0, errors: 0 };
 
-for (const brand of brandsToProcess) {
-  console.log(`\n=== ${brand.dbName} ===`);
-  let brandId = null;
-  if (!DRY_RUN) brandId = await ensureBrand(brand.dbName);
+const retailersToProcess = RETAILER_FILTER
+  ? [[RETAILER_FILTER, RETAILERS[RETAILER_FILTER]]].filter(([_, v]) => v)
+  : Object.entries(RETAILERS);
 
-  let products;
-  try {
-    products = await getBrandCatalogue(brand.slug);
-  } catch (e) {
-    log.warn(`Brand fetch failed: ${e.message}`);
-    continue;
-  }
-  log.info(`  ${products.length} products on page`);
-  stats.scraped += products.length;
+for (const [retailerName, cfg] of retailersToProcess) {
+  console.log(`\n━━━━━━━━━━ ${retailerName.toUpperCase()} ━━━━━━━━━━`);
 
-  for (const p of products) {
-    if (!shouldKeep(p.name, p.price)) {
-      stats.skipped++;
-      continue;
-    }
-    stats.kept++;
-    const category = classify(p.name);
+  for (const brand of cfg.brands) {
+    if (BRAND_FILTER && brand.slug !== BRAND_FILTER) continue;
+    console.log(`\n=== ${brand.dbName} (${retailerName}) ===`);
+    let brandId = null;
+    if (!DRY_RUN) brandId = await ensureBrand(brand.dbName);
 
-    if (DRY_RUN) {
-      console.log(`    + [${category}] ${p.name}  £${p.price?.toFixed(2) ?? '?'}`);
-      stats.new++;
-      continue;
-    }
-
+    let products;
     try {
-      const { productId, isNew } = await insertProduct({
-        brandId, name: p.name, category, imageUrl: p.imageUrl, price: p.price,
-      });
-      await upsertPrice({
-        productId, retailerId: 'coolblades',
-        price: p.price, url: p.url, inStock: true,
-      });
-      if (isNew) {
-        stats.new++;
-        console.log(`    + [${category}] ${p.name}  £${p.price?.toFixed(2) ?? '?'}`);
+      if (cfg.type === 'shopify') {
+        const host = retailerName === 'salons-direct' ? 'www.salonsdirect.com' : null;
+        if (!host) throw new Error('No shopify host mapped for ' + retailerName);
+        products = await getShopifyCollection(host, brand.slug);
       } else {
-        stats.dup++;
+        products = await getCoolbladesBrand(brand.slug);
       }
     } catch (e) {
-      stats.errors++;
-      console.log(`    ✗ ${p.name} — ${e.message}`);
+      log.warn(`Brand fetch failed: ${e.message}`);
+      continue;
     }
-  }
-}
+    log.info(`  ${products.length} products on page`);
+    stats.scraped += products.length;
+
+    for (const p of products) {
+      if (!shouldKeep(p.name, p.price)) { stats.skipped++; continue; }
+      stats.kept++;
+      const category = classify(p.name);
+
+      if (DRY_RUN) {
+        console.log(`    + [${category}] ${p.name}  £${p.price?.toFixed(2) ?? '?'}`);
+        stats.new++;
+        continue;
+      }
+
+      try {
+        const { productId, isNew } = await insertProduct({
+          brandId, name: p.name, category, imageUrl: p.imageUrl, price: p.price,
+        });
+        await upsertPrice({
+          productId, retailerId: cfg.retailerId,
+          price: p.price, url: p.url, inStock: true,
+        });
+        if (isNew) {
+          stats.new++;
+          console.log(`    + [${category}] ${p.name}  £${p.price?.toFixed(2) ?? '?'}`);
+        } else {
+          stats.dup++;
+        }
+      } catch (e) {
+        stats.errors++;
+        console.log(`    ✗ ${p.name} — ${e.message}`);
+      }
+    }
+  } // end brand loop
+} // end retailer loop
 
 console.log('\n' + '─'.repeat(50));
 console.log(

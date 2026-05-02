@@ -72,7 +72,7 @@ export default function OnboardingScreen() {
 
       {/* Top bar: brand + skip */}
       <View style={styles.topBar}>
-        <Text style={[styles.brand, { color: colors.text }]}>MySection</Text>
+        <Text style={[styles.brand, { color: colors.text }]}>Clipprr</Text>
         {!isLast && (
           <Pressable onPress={finish} hitSlop={10}>
             <Text style={[styles.skip, { color: colors.textSecondary }]}>Skip</Text>

@@ -16,7 +16,7 @@ type CurrencyContextValue = {
   formatPrice: (usdAmount: number) => string;
 };
 
-const STORAGE_KEY = 'mysection:currency';
+const STORAGE_KEY = 'clipprr:currency';
 
 const CurrencyContext = createContext<CurrencyContextValue | undefined>(undefined);
 

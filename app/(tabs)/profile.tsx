@@ -148,7 +148,7 @@ export default function ProfileScreen() {
         </View>
       )}
 
-      <Text style={[styles.version, { color: colors.placeholder }]}>MySection v1.0.0</Text>
+      <Text style={[styles.version, { color: colors.placeholder }]}>Clipprr v1.0.0</Text>
       <View style={{ height: 40 }} />
     </ScrollView>
   );

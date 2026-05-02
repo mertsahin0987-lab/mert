@@ -8,7 +8,7 @@ type OnboardingContextValue = {
   resetOnboarding: () => void;
 };
 
-const STORAGE_KEY = 'mysection:onboarding-complete';
+const STORAGE_KEY = 'clipprr:onboarding-complete';
 
 const OnboardingContext = createContext<OnboardingContextValue | undefined>(undefined);
 

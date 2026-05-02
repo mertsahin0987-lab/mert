@@ -1,5 +1,5 @@
 /**
- * Supabase client for MySection.
+ * Supabase client for Clipprr.
  *
  * The publishable (anon) key is safe to embed in the app — it only allows
  * the operations permitted by Row-Level Security policies (public SELECT on

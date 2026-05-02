@@ -1,4 +1,4 @@
-# MySection — Product Data
+# Clipprr — Product Data
 
 All products, prices, brands and colour variants live in CSV files in this folder.
 You edit them in **Numbers / Excel / Google Sheets**, run one command, and the

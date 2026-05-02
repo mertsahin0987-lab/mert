@@ -1,5 +1,5 @@
 productId,retailer,price,url,inStock
-1,Salons Direct,144.99,https://www.salonsdirect.com/products/babyliss-pro-snap-fx-skeleton-dlc-blade,true
+1,Salons Direct,144.99,,true
 1,Coolblades,149.99,https://www.coolblades.co.uk/babyliss-pro-super-motor-skeleton-trimmer/,true
 1,Chris & Sons,142.50,https://chrisandsons.co.uk/skeleton-fx,true
 1,Amazon UK,154.00,https://www.amazon.co.uk/dp/B0CFSQJZ3Z,true

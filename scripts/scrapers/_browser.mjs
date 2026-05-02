@@ -14,7 +14,14 @@
  * Call `closeBrowser()` at the end of your run.
  */
 
-import { chromium } from 'playwright';
+// Use playwright-extra with the stealth plugin so Cloudflare's bot detection
+// doesn't catch us. Stealth patches ~17 telltale signs that we're automated
+// (navigator.webdriver, missing chrome.runtime, fake plugins, etc.).
+import { chromium as _chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+
+_chromium.use(StealthPlugin());
+const chromium = _chromium;
 
 let browser = null;
 let context = null;
@@ -38,12 +45,8 @@ async function getContext() {
       'Accept-Language': 'en-GB,en;q=0.9',
     },
   });
-  // Block heavy assets we don't need (faster + lighter on the target site).
-  await context.route('**/*', (route) => {
-    const t = route.request().resourceType();
-    if (t === 'image' || t === 'font' || t === 'media') return route.abort();
-    return route.continue();
-  });
+  // We used to block images/fonts here for speed, but Cloudflare's challenge
+  // pages need them to render & complete the proof-of-work. Leave them on.
   return context;
 }
 
@@ -55,25 +58,26 @@ async function getContext() {
  *   - polls the title for up to 25s after navigating
  *   - retries the navigation once if the challenge stalls
  */
-export async function browserFetch(url, { timeoutMs = 30000 } = {}) {
+export async function browserFetch(url, { timeoutMs = 60000 } = {}) {
   const ctx = await getContext();
   const page = await ctx.newPage();
   try {
     await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
 
-    // If we landed on a Cloudflare interstitial, wait for the title to change.
+    // If we landed on a Cloudflare interstitial, poll the title for up to 45s.
+    // Stealth + networkidle is what actually beats Cloudflare's JS challenge.
     const isChallenge = (t) =>
       /just a moment|attention required|checking your browser|verifying you/i.test(t);
 
     let title = await page.title();
     if (isChallenge(title)) {
       const start = Date.now();
-      while (Date.now() - start < 25000 && isChallenge(title)) {
-        await page.waitForTimeout(1000);
+      while (Date.now() - start < 45000 && isChallenge(title)) {
+        await page.waitForTimeout(1500);
         title = await page.title();
       }
-      // After challenge clears, give the real page a beat to render
-      await page.waitForLoadState('domcontentloaded', { timeout: 10000 }).catch(() => {});
+      // After challenge clears, wait for the real page to fully load
+      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
     }
     return await page.content();
   } finally {

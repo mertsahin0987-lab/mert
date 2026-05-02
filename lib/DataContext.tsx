@@ -48,6 +48,7 @@ type DbProduct = {
   brand_id: string;
   category: string;
   image_key: string;
+  image_url: string | null;   // remote CDN image URL (preferred over bundled)
   base_price: number;
   description: string | null;
   is_new: boolean;
@@ -77,9 +78,12 @@ type DbColor = {
 // Live → app shape mapper
 // =========================================================================
 
-function pickProductImage(key: string | null) {
+function pickProductImage(key: string | null, remoteUrl?: string | null) {
+  // Prefer the remote URL — that's the canonical image from the retailer's CDN
+  // and works for ALL products (including ones we never bundled a PNG for).
+  if (remoteUrl) return { uri: remoteUrl };
   if (key && productImages[key]) return productImages[key];
-  // Fall back to the first bundled image so RN doesn't crash on undefined source
+  // Final fallback: first bundled image so React Native doesn't crash
   const first = Object.values(productImages)[0];
   return first;
 }
@@ -97,7 +101,7 @@ async function fetchLiveData(): Promise<{ products: Product[]; brands: Brand[] }
     supabase
       .from('products')
       .select(
-        'id, name, brand_id, category, image_key, base_price, description, is_new, trending, upcoming_release, release_date'
+        'id, name, brand_id, category, image_key, image_url, base_price, description, is_new, trending, upcoming_release, release_date'
       )
       .order('id'),
     supabase
@@ -157,7 +161,7 @@ async function fetchLiveData(): Promise<{ products: Product[]; brands: Brand[] }
     name: p.name,
     brand: brandNameById.get(p.brand_id) ?? p.brand_id,
     category: p.category,
-    image: pickProductImage(p.image_key),
+    image: pickProductImage(p.image_key, p.image_url),
     price: Number(p.base_price),
     description: p.description ?? '',
     isNew: p.is_new,

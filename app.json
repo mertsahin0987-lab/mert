@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "ClipperHouse",
-    "slug": "ClipperHouse",
+    "name": "MySection",
+    "slug": "MySection",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "clipperhouse",
+    "scheme": "mysection",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {

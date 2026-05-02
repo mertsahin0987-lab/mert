@@ -1,0 +1,58 @@
+# Scrapes retailer prices and updates Supabase.
+#
+# Runs every day at 06:00 UTC (07:00 BST). Manually triggerable from the
+# Actions tab via "workflow_dispatch".
+#
+# Required GitHub repo secrets (Settings → Secrets and variables → Actions):
+#   - SUPABASE_URL                  — your project URL
+#   - SUPABASE_SERVICE_ROLE_KEY     — secret key (NEVER commit this)
+
+name: Scrape prices
+
+on:
+  schedule:
+    - cron: '0 6 * * *'      # daily, 06:00 UTC
+  workflow_dispatch:           # allow manual trigger
+    inputs:
+      retailer:
+        description: 'Limit to one retailer (optional)'
+        required: false
+        type: choice
+        options:
+          - ''
+          - coolblades
+          - salons-direct
+          - tomb45-direct
+          - chris-sons
+          - jrl-direct
+          - amazon-uk
+      dry_run:
+        description: 'Dry run (no DB writes)'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Install Playwright Chromium
+        # Required for the Chris & Sons scraper (Cloudflare-protected).
+        # Cached automatically by setup-node when package-lock.json is unchanged.
+        run: npx playwright install --with-deps chromium
+      - name: Run scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.retailer }}" ]; then ARGS="$ARGS --retailer=${{ inputs.retailer }}"; fi
+          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          node scripts/scrape-prices.mjs $ARGS

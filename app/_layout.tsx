@@ -1,24 +1,32 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, ThemeProvider as NavThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { FavouritesProvider } from '@/components/FavouritesContext';
+import { ThemeProvider } from '@/components/ThemeContext';
+import { OnboardingProvider, useOnboarding } from '@/components/OnboardingContext';
+import { CurrencyProvider } from '@/components/CurrencyContext';
+import { AlertSettingsProvider } from '@/components/AlertSettingsContext';
+import { DataProvider } from '@/lib/DataContext';
+import { initSentry } from '@/lib/sentry';
+
+// Initialise crash reporting before anything else runs.
+initSentry();
 
 export {
-  // Catch any errors thrown by the Layout component.
   ErrorBoundary,
 } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -27,7 +35,6 @@ export default function RootLayout() {
     ...FontAwesome.font,
   });
 
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
   useEffect(() => {
     if (error) throw error;
   }, [error]);
@@ -42,18 +49,50 @@ export default function RootLayout() {
     return null;
   }
 
-  return <RootLayoutNav />;
+  return (
+    <ThemeProvider>
+      <CurrencyProvider>
+        <AlertSettingsProvider>
+          <OnboardingProvider>
+            <FavouritesProvider>
+              <DataProvider>
+                <RootLayoutNav />
+              </DataProvider>
+            </FavouritesProvider>
+          </OnboardingProvider>
+        </AlertSettingsProvider>
+      </CurrencyProvider>
+    </ThemeProvider>
+  );
 }
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
+  const router = useRouter();
+  const segments = useSegments();
+  const { hasCompletedOnboarding, isReady } = useOnboarding();
+
+  // Onboarding is native-only — skip it entirely on web.
+  useEffect(() => {
+    if (!isReady || Platform.OS === 'web') return;
+    const onOnboarding = segments[0] === 'onboarding';
+    if (!hasCompletedOnboarding && !onOnboarding) {
+      router.replace('/onboarding');
+    } else if (hasCompletedOnboarding && onOnboarding) {
+      router.replace('/(tabs)');
+    }
+  }, [isReady, hasCompletedOnboarding, segments, router]);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <NavThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="brand/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="currency" options={{ headerShown: false, presentation: 'modal' }} />
+        <Stack.Screen name="alert-settings" options={{ headerShown: false }} />
       </Stack>
-    </ThemeProvider>
+    </NavThemeProvider>
   );
 }

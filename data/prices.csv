@@ -1,0 +1,68 @@
+productId,retailer,price,url,inStock
+1,Salons Direct,144.99,https://www.salonsdirect.com/products/babyliss-pro-snap-fx-skeleton-dlc-blade,true
+1,Coolblades,149.99,https://www.coolblades.co.uk/babyliss-pro-super-motor-skeleton-trimmer/,true
+1,Chris & Sons,142.50,https://chrisandsons.co.uk/skeleton-fx,true
+1,Amazon UK,154.00,https://www.amazon.co.uk/dp/B0CFSQJZ3Z,true
+2,Salons Direct,184.99,https://www.salonsdirect.com/products/wahl-5-star-cordless-senior-hair-clipper-kit,true
+2,Coolblades,189.99,https://www.coolblades.co.uk/wahl-senior-2-0-cordless-clipper/,true
+2,Amazon UK,194.99,https://www.amazon.co.uk/dp/B083PWNJYG,true
+2,Chris & Sons,189.00,https://www.chrisandsons.co.uk/wahl-cordless-senior-clipper.html,true
+3,Salons Direct,124.99,https://salonsdirect.com/gtx-z,true
+3,Coolblades,129.99,https://www.coolblades.co.uk/andis-gtx-exo-cordless-trimmer/,false
+3,Chris & Sons,127.00,https://chrisandsons.co.uk/gtx-z,true
+4,Coolblades,179.99,https://www.coolblades.co.uk/gamma-boosted-trimmer/,true
+4,Amazon UK,184.99,https://www.amazon.co.uk/dp/B0CQHPRVR1,true
+5,Coolblades,159.99,https://www.coolblades.co.uk/stylecraft-saber-clipper/,true
+5,Salons Direct,154.99,https://salonsdirect.com/saber,true
+5,Chris & Sons,159.99,https://chrisandsons.co.uk/saber,true
+6,Salons Direct,224.99,https://salonsdirect.com/jrl-fresh-fade,true
+6,Coolblades,229.99,https://www.coolblades.co.uk/jrl-fresh-fade-2020c-clipper/,true
+6,Chris & Sons,219.00,https://www.chrisandsons.co.uk/jrl-freshfade-2020c-clipper.html,true
+7,Coolblades,219.99,https://coolblades.co.uk/tomb45-power-clip,true
+7,Amazon UK,224.99,https://amazon.co.uk/dp/tomb45-power-clip,false
+8,Amazon UK,99.99,https://www.amazon.co.uk/dp/B09PFCKMJ5,true
+8,Coolblades,99.99,https://coolblades.co.uk/supreme-prodigy,true
+9,Salons Direct,164.99,https://www.salonsdirect.com/products/wahl-5-star-magic-clip-cordless-hair-clipper-kit,true
+9,Coolblades,169.99,https://www.coolblades.co.uk/wahl-cordless-magic-clip-clipper/,true
+9,Chris & Sons,162.50,https://www.chrisandsons.co.uk/wahl-cordless-magic-clipper.html,true
+9,Amazon UK,174.99,https://www.amazon.co.uk/dp/B0CVLHN6PL,true
+10,Salons Direct,184.99,https://salonsdirect.com/absolute-zero,true
+10,Coolblades,189.99,https://coolblades.co.uk/absolute-zero,true
+11,Tomb45 Direct,29.99,https://tomb45.com/fade-brush,true
+11,Amazon UK,32.99,https://www.amazon.co.uk/dp/B09Y97HQLM,true
+12,Salons Direct,224.99,https://salonsdirect.com/gold-fx,true
+12,Coolblades,229.99,,true
+12,Chris & Sons,222.00,https://chrisandsons.co.uk/gold-fx,true
+13,Coolblades,179.99,https://www.coolblades.co.uk/gamma-x-ergo-clipper/,true
+14,Amazon UK,24.99,https://amazon.co.uk/dp/stinger-guards,true
+14,Salons Direct,22.99,https://salonsdirect.com/stinger-guards,true
+17,Amazon UK,14.99,https://amazon.co.uk/dp/andis-blade-ice,true
+17,Salons Direct,12.99,https://salonsdirect.com/andis-blade-ice,true
+18,Salons Direct,39.99,https://salonsdirect.com/babyliss-cape,true
+18,Coolblades,42.99,https://coolblades.co.uk/babyliss-cape,true
+19,JRL Direct,999.00,https://jrlusa.com/lamborghini-diamante,true
+19,Salons Direct,949.99,https://salonsdirect.com/jrl-lamborghini-diamante,true
+19,Coolblades,979.99,https://www.coolblades.co.uk/jrl-x-lamborghini-diamante-clipper-trimmer-kit/,false
+19,Chris & Sons,959.00,https://www.chrisandsons.co.uk/jrl-x-lamborghini-clipper-trimmer-kit-black.html,true
+20,Chris & Sons,259.00,https://www.chrisandsons.co.uk/jrl-onyx-professional-cordless-hair-clipper.html,true
+21,Chris & Sons,179.00,https://www.chrisandsons.co.uk/wahl-5-star-vapor-cordless-clipper.html,true
+22,Chris & Sons,269.00,https://www.chrisandsons.co.uk/gamma-boosted-up-modular-super-torque-clipper.html,true
+23,Chris & Sons,599.00,https://www.chrisandsons.co.uk/jrl-ghost-clipper-trimmer-and-foil-shaver.html,true
+24,Chris & Sons,159.00,https://www.chrisandsons.co.uk/wahl-black-cordless-magic-clip-clipper.html,true
+25,Chris & Sons,279.00,https://www.chrisandsons.co.uk/jrl-ghost-professional-cordless-hair-clipper.html,true
+26,Chris & Sons,169.00,https://www.chrisandsons.co.uk/babyliss-super-motor-skeleton-trimmer.html,true
+27,Chris & Sons,89.00,https://www.chrisandsons.co.uk/wahl-hi-viz-trimmer.html,true
+28,Chris & Sons,179.00,https://www.chrisandsons.co.uk/gamma-stylecraft-pro-brushless-saber-trimmer-black.html,true
+29,Chris & Sons,259.00,https://www.chrisandsons.co.uk/omni-arcane-hair-clipper.html,true
+30,Chris & Sons,239.00,https://www.chrisandsons.co.uk/gamma-stylecraft-instinct-clipper.html,true
+31,Chris & Sons,219.00,https://www.chrisandsons.co.uk/gamma-boosted-clipper.html,true
+32,Chris & Sons,219.00,https://www.chrisandsons.co.uk/wahl-senior-2-0-cordless-clipper.html,true
+33,Chris & Sons,549.00,https://www.chrisandsons.co.uk/babyliss-pro-cordless-super-motor-collection.html,true
+34,Chris & Sons,179.00,https://www.chrisandsons.co.uk/gamma-boosted-super-torque-motor-trimmer.html,true
+35,Chris & Sons,169.00,https://www.chrisandsons.co.uk/wahl-gold-cordless-magic-clip.html,true
+36,Chris & Sons,239.00,https://www.chrisandsons.co.uk/gamma-stylecraft-saber-2-0-brushless-motor-clipper-black.html,true
+37,Chris & Sons,179.00,https://www.chrisandsons.co.uk/gamma-stylecraft-pro-brushless-saber-trimmer-white.html,true
+38,Chris & Sons,189.00,https://www.chrisandsons.co.uk/babyliss-pro-boost-chameleon-skeleton-fx-trimmer.html,true
+39,Chris & Sons,279.00,https://www.chrisandsons.co.uk/gamma-stylecraft-pro-metal-edition-instinct-clipper.html,true
+40,Chris & Sons,479.00,https://www.chrisandsons.co.uk/omni-arcane-anomaly-clipper-and-trimmer-combo.html,true
+41,Chris & Sons,189.00,https://www.chrisandsons.co.uk/gamma-stylecraft-rebel-clipper.html,true

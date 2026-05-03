@@ -86,16 +86,29 @@ const BRANDS = RETAILERS.coolblades.brands;
 const KEEP_KEYWORDS = /(clipper|trimmer|shaver|foil)/i;
 
 // Keywords that mean "this is NOT a tool we want" (overrides KEEP).
-// Anything containing these words is dropped even if it also matches KEEP.
+// Word-boundaries (\b) so "brush" doesn't match "brushless", "guard" doesn't
+// match real product names containing it, etc. SKU regex requires a digit so
+// "(Black)" / "(Gold)" colour variants aren't blocked.
 const REJECT_KEYWORDS = new RegExp(
   '(' + [
-    'replacement', 'spare', 'cam follower', 'fade blade', 'taper blade',
-    'standard blade', 'travel blade', 'attachment', 'charging? (stand|station|cord|cable|dock|lead)',
-    'adapt', 'battery', 'case', 'bag', 'comb', 'guide', 'guard',
-    'lubricant', 'oil( spray)?', 'coolant', 'disinfect',
-    'brush', 'hair[-\\s]?dryer', 'dryer', 'curling', 'straightener', 'wand',
-    'cape', 'chair', 'trolley', 'cabinet', 'mirror', 'sign', 'drawer',
-    'pet', 'dog', 'beard', 'nose', 'ear', 'pubic', 'body groomer',
+    '\\breplacement\\b', '\\bspare\\b', '\\battachment\\b',
+    '\\bcam follower\\b', '\\bfade blade\\b', '\\btaper blade\\b',
+    '\\bstandard blade\\b', '\\btravel blade\\b', '\\bfine blade\\b',
+    '\\bchrome blade\\b', '\\bzero gap tool\\b', '\\bgap tool\\b',
+    '\\bclipper blades?\\b', '\\btrimmer blades?\\b',
+    '\\bcharging? (stand|station|base|cord|cable|dock|lead)\\b',
+    '\\bcharge stand\\b',
+    '\\badapt(?:er|or)?\\b', '\\bbattery\\b', '\\bcase\\b', '\\bbag\\b',
+    '\\b(comb|guide)\\b', '\\bguard\\b',
+    '\\blubricant\\b', '\\boil(?: spray)?\\b', '\\bcoolant\\b', '\\bdisinfect',
+    '\\bbrush\\b', '\\bhair[-\\s]?dryer\\b', '\\bdryer\\b',
+    '\\bcurling\\b', '\\bstraightener\\b', '\\bwand\\b',
+    '\\bcape\\b', '\\bchair\\b', '\\btrolley\\b', '\\bcabinet\\b',
+    '\\bmirror\\b', '\\bsign\\b', '\\bdrawer\\b',
+    '\\bpet\\b', '\\bdog\\b', '\\bbeard\\b', '\\bnose\\b',
+    '\\bear trimmer\\b', '\\bpubic\\b', '\\bbody groomer\\b',
+    // SKU-style — needs at least one digit
+    '\\(#?[A-Z0-9]*\\d[A-Z0-9-]*\\)',
   ].join('|') + ')',
   'i'
 );
@@ -185,11 +198,19 @@ async function getCoolbladesBrand(slug) {
     // thumbnails by default but the same CDN endpoint serves any size.
     imageUrl = imageUrl.replace(/\/stencil\/[^/]+\//, '/stencil/1280x1280/');
 
-    // Price — usually in aria-label of the link, or in a price element
-    const priceText =
-      a.attr('aria-label') ||
-      $(el).find('[class*="price"]').first().text().trim() ||
-      '';
+    // Price — look for the actual price element first. The aria-label often
+    // contains SKU numbers (e.g. "BAB825U") that parsePrice would misread as
+    // £825. Only fall back to aria-label if no price element exists, and even
+    // then strip out the SKU pattern first.
+    const priceEl = $(el).find('.price, [class*="price"], [data-test-info-type="price"]').first().text().trim();
+    let priceText = priceEl;
+    if (!priceText) {
+      const ariaLabel = a.attr('aria-label') || '';
+      // Aria labels look like: "Wahl Senior Clipper, Price range from £83 to £100"
+      // or "Babyliss BAB825U, £35.99". Pull just the £-prefixed part.
+      const m = ariaLabel.match(/£\s*\d[\d,.]*/);
+      priceText = m ? m[0] : '';
+    }
     const price = parsePrice(priceText);
 
     products.push({ name, url: href, imageUrl, price });

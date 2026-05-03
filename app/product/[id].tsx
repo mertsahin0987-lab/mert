@@ -12,6 +12,7 @@ import {
   FlatList,
 } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
 import { Feather } from '@expo/vector-icons';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { ColorVariant } from '@/constants/MockData';
@@ -95,8 +96,30 @@ export default function ProductDetailScreen() {
     }
   };
 
-  const handleStorePress = (url: string) => {
-    Linking.openURL(url).catch(() => {});
+  const handleStorePress = async (url: string) => {
+    if (!url) return;
+    try {
+      if (Platform.OS === 'web') {
+        // On web, plain Linking.openURL() triggers Chrome's popup blocker
+        // because it goes through window.open(). A direct anchor click avoids
+        // that — synchronous, user-initiated, opens in a new tab cleanly.
+        if (typeof document !== 'undefined') {
+          const a = document.createElement('a');
+          a.href = url;
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          return;
+        }
+      }
+      // On native, prefer the in-app browser (better UX, returns to the app
+      // when the user is done) and fall back to Linking if that fails.
+      await WebBrowser.openBrowserAsync(url);
+    } catch (e) {
+      try { await Linking.openURL(url); } catch {}
+    }
   };
 
   const formatReleaseDate = (date?: string) => {

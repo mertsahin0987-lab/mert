@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView, Switch } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ScrollView, Switch, Linking } from 'react-native';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useTheme } from '@/components/ThemeContext';
@@ -123,10 +123,34 @@ export default function ProfileScreen() {
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: colors.textSecondary }]}>SUPPORT</Text>
         <View style={[styles.menuGroup, { backgroundColor: colors.cardBackground, borderColor: colors.border }]}>
-          <MenuRow icon="question-circle" label="Help Centre" colors={colors} />
-          <MenuRow icon="envelope" label="Contact Us" colors={colors} />
-          <MenuRow icon="file-text-o" label="Terms of Service" colors={colors} />
-          <MenuRow icon="shield" label="Privacy Policy" colors={colors} />
+          <MenuRow
+            icon="question-circle"
+            label="Help Centre"
+            colors={colors}
+            onPress={() => Linking.openURL('https://clipprr.co.uk').catch(() => {})}
+          />
+          <MenuRow
+            icon="envelope"
+            label="Contact Us"
+            colors={colors}
+            onPress={() =>
+              Linking.openURL(
+                'mailto:mert@clipprr.co.uk?subject=Clipprr%20app%20feedback'
+              ).catch(() => {})
+            }
+          />
+          <MenuRow
+            icon="file-text-o"
+            label="Terms of Service"
+            colors={colors}
+            onPress={() => Linking.openURL('https://clipprr.co.uk/terms.html').catch(() => {})}
+          />
+          <MenuRow
+            icon="shield"
+            label="Privacy Policy"
+            colors={colors}
+            onPress={() => Linking.openURL('https://clipprr.co.uk/privacy.html').catch(() => {})}
+          />
           <MenuRow
             icon="refresh"
             label="Replay onboarding"
@@ -149,6 +173,10 @@ export default function ProfileScreen() {
       )}
 
       <Text style={[styles.version, { color: colors.placeholder }]}>Clipprr v1.0.0</Text>
+      <Text style={[styles.disclosure, { color: colors.placeholder }]}>
+        Clipprr earns a small commission on some purchases via affiliate links.
+        This doesn't change the price you pay.
+      </Text>
       <View style={{ height: 40 }} />
     </ScrollView>
   );
@@ -241,6 +269,13 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 12,
     marginTop: 24,
+  },
+  disclosure: {
+    textAlign: 'center',
+    fontSize: 11,
+    paddingHorizontal: 32,
+    marginTop: 12,
+    lineHeight: 16,
   },
   trailingRow: {
     flexDirection: 'row',

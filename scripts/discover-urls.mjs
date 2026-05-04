@@ -126,7 +126,8 @@ async function searchAmazon(query) {
       if (!m || seen.has(m[1])) return;
       seen.add(m[1]);
       const name = $(el).find('h2 span').first().text().trim() || a.text().trim();
-      if (name) results.push({ name, url: `https://www.amazon.co.uk/dp/${m[1]}` });
+      // Auto-inject our Amazon Associates tag so every link earns commission
+      if (name) results.push({ name, url: `https://www.amazon.co.uk/dp/${m[1]}?tag=clipprr-21` });
     });
     return results;
   } catch {

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clipprr — Find the best price on barber tools</title>
+  <meta name="description" content="Compare prices on clippers, trimmers and shavers across every UK retailer. Get alerted to price drops, restocks, and VAT-free days.">
+  <meta name="theme-color" content="#0a0a0a">
+
+  <!-- Open Graph (social sharing) -->
+  <meta property="og:title" content="Clipprr — Find the best price on barber tools">
+  <meta property="og:description" content="Compare clipper, trimmer & shaver prices across every UK retailer. Real-time alerts on price drops.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://clipprr.co.uk">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #0a0a0a;
+      --bg-soft: #131313;
+      --fg: #fafafa;
+      --fg-muted: #a1a1aa;
+      --fg-dim: #71717a;
+      --accent: #fb923c;        /* orange — barber pole vibe */
+      --accent-dim: #c2410c;
+      --border: #27272a;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      background: var(--bg);
+      color: var(--fg);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      line-height: 1.5;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    /* ===== NAV ===== */
+    nav {
+      position: sticky;
+      top: 0;
+      background: rgba(10, 10, 10, 0.75);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      z-index: 100;
+    }
+    .nav-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+    }
+    .logo {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+    .logo .accent { color: var(--accent); }
+    .nav-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 16px;
+      background: var(--fg);
+      color: var(--bg);
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: transform 0.15s ease;
+    }
+    .nav-cta:hover { transform: translateY(-1px); }
+
+    /* ===== HERO ===== */
+    .hero {
+      padding: 100px 0 80px;
+      text-align: center;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: rgba(251, 146, 60, 0.1);
+      color: var(--accent);
+      border: 1px solid rgba(251, 146, 60, 0.3);
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 32px;
+    }
+    .badge .pulse {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 0 0 var(--accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(251, 146, 60, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(251, 146, 60, 0); }
+    }
+    h1 {
+      font-size: clamp(40px, 7vw, 76px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+      margin-bottom: 24px;
+    }
+    h1 .accent { color: var(--accent); }
+    .hero p {
+      font-size: clamp(17px, 1.6vw, 21px);
+      color: var(--fg-muted);
+      max-width: 620px;
+      margin: 0 auto 40px;
+    }
+    .cta-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .cta-primary, .cta-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: 999px;
+      font-weight: 600;
+      font-size: 16px;
+      transition: transform 0.15s ease, background 0.15s ease;
+    }
+    .cta-primary {
+      background: var(--accent);
+      color: #1a1a1a;
+    }
+    .cta-primary:hover { background: #fdba74; transform: translateY(-1px); }
+    .cta-secondary {
+      background: transparent;
+      color: var(--fg);
+      border: 1px solid var(--border);
+    }
+    .cta-secondary:hover { background: var(--bg-soft); }
+
+    /* ===== STATS ===== */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      max-width: 700px;
+      margin: 80px auto 0;
+      padding: 32px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .stat {
+      text-align: center;
+    }
+    .stat-num {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+    .stat-label {
+      font-size: 13px;
+      color: var(--fg-muted);
+      margin-top: 4px;
+    }
+
+    /* ===== FEATURES ===== */
+    .features {
+      padding: 120px 0 80px;
+    }
+    .section-eyebrow {
+      color: var(--accent);
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      text-align: center;
+      margin-bottom: 12px;
+    }
+    .section-title {
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      text-align: center;
+      max-width: 720px;
+      margin: 0 auto 80px;
+      line-height: 1.1;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+    .feature {
+      padding: 32px;
+      background: var(--bg-soft);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+    }
+    .feature-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(251, 146, 60, 0.1);
+      color: var(--accent);
+      border-radius: 12px;
+      margin-bottom: 20px;
+      font-size: 24px;
+    }
+    .feature h3 {
+      font-size: 19px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+    .feature p {
+      color: var(--fg-muted);
+      font-size: 15px;
+    }
+
+    /* ===== RETAILERS ===== */
+    .retailers {
+      padding: 60px 0;
+      text-align: center;
+    }
+    .retailers .label {
+      font-size: 13px;
+      color: var(--fg-dim);
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      margin-bottom: 24px;
+    }
+    .retailer-row {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px 28px;
+    }
+    .retailer-row span {
+      color: var(--fg-muted);
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    /* ===== BIG CTA ===== */
+    .signup {
+      margin: 80px 0 120px;
+      padding: 64px 32px;
+      background: linear-gradient(135deg, rgba(251, 146, 60, 0.12), rgba(251, 146, 60, 0.04));
+      border: 1px solid rgba(251, 146, 60, 0.25);
+      border-radius: var(--radius);
+      text-align: center;
+    }
+    .signup h2 {
+      font-size: clamp(28px, 4vw, 40px);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin-bottom: 12px;
+    }
+    .signup p {
+      color: var(--fg-muted);
+      font-size: 17px;
+      max-width: 520px;
+      margin: 0 auto 32px;
+    }
+    .signup form {
+      display: flex;
+      gap: 8px;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+    .signup input {
+      flex: 1;
+      padding: 14px 18px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      color: var(--fg);
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .signup input:focus { border-color: var(--accent); }
+    .signup button {
+      padding: 14px 24px;
+      background: var(--accent);
+      color: #1a1a1a;
+      border: none;
+      border-radius: 999px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s;
+    }
+    .signup button:hover { background: #fdba74; }
+    .signup .small { font-size: 12px; color: var(--fg-dim); margin-top: 16px; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 40px 0;
+    }
+    .footer-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+    }
+    .footer-row .copy { color: var(--fg-dim); font-size: 14px; }
+    .footer-links {
+      display: flex;
+      gap: 24px;
+    }
+    .footer-links a {
+      color: var(--fg-muted);
+      font-size: 14px;
+      transition: color 0.15s;
+    }
+    .footer-links a:hover { color: var(--fg); }
+
+    /* ===== MOBILE ===== */
+    @media (max-width: 600px) {
+      .hero { padding: 60px 0 40px; }
+      .stats { grid-template-columns: 1fr; }
+      .signup form { flex-direction: column; }
+      .signup form button { width: 100%; }
+      .features { padding: 80px 0 40px; }
+    }
+  </style>
+</head>
+<body>
+
+  <nav>
+    <div class="container nav-row">
+      <a href="/" class="logo">Clipp<span class="accent">rr</span></a>
+      <a href="#signup" class="nav-cta">Get early access →</a>
+    </div>
+  </nav>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="badge">
+          <span class="pulse"></span>
+          Coming soon · Built for UK barbers
+        </div>
+        <h1>
+          Stop overpaying for<br>
+          <span class="accent">barber tools.</span>
+        </h1>
+        <p>
+          Compare clippers, trimmers and shavers across every UK retailer in one place.
+          Get alerted the second a price drops, an item restocks, or a VAT-free day starts.
+        </p>
+        <div class="cta-group">
+          <a href="#signup" class="cta-primary">Get early access</a>
+          <a href="#features" class="cta-secondary">See how it works</a>
+        </div>
+
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-num">160+</div>
+            <div class="stat-label">tools tracked</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">6</div>
+            <div class="stat-label">UK retailers</div>
+          </div>
+          <div class="stat">
+            <div class="stat-num">Daily</div>
+            <div class="stat-label">price updates</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="features" id="features">
+      <div class="container">
+        <div class="section-eyebrow">Why Clipprr</div>
+        <h2 class="section-title">Every tool. Every retailer. Best price, every time.</h2>
+
+        <div class="feature-grid">
+          <div class="feature">
+            <div class="feature-icon">💰</div>
+            <h3>Real-time price comparison</h3>
+            <p>See live prices for the same tool across Coolblades, Salons Direct, Chris &amp; Sons, Amazon UK and more — side by side.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🔔</div>
+            <h3>Price drop alerts</h3>
+            <p>Save tools you want. Get a push notification the moment any retailer cuts the price.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">⚡</div>
+            <h3>VAT-free &amp; flash sales</h3>
+            <p>Never miss a Salons Direct VAT-free weekend or a Coolblades flash sale again. We surface them in the app.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">📦</div>
+            <h3>Back-in-stock alerts</h3>
+            <p>That clipper you wanted that's been sold out for weeks? We'll tell you the moment it's back.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🆕</div>
+            <h3>New release tracking</h3>
+            <p>Be first to know when JRL drops a new colourway or BaByliss launches a new trimmer.</p>
+          </div>
+          <div class="feature">
+            <div class="feature-icon">🔧</div>
+            <h3>Built by a barber, for barbers</h3>
+            <p>Not a price comparison site bolted onto barber gear. A focused tool, designed around how you actually shop.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Retailers -->
+    <section class="retailers">
+      <div class="container">
+        <div class="label">TRACKING PRICES AT</div>
+        <div class="retailer-row">
+          <span>Coolblades</span>
+          <span>Salons Direct</span>
+          <span>Chris &amp; Sons</span>
+          <span>Amazon UK</span>
+          <span>JRL Direct</span>
+          <span>Tomb45</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Signup CTA -->
+    <section id="signup">
+      <div class="container">
+        <div class="signup">
+          <h2>Be first in line.</h2>
+          <p>Join the early access list. We'll email you the moment Clipprr launches on iOS and Android.</p>
+          <form action="https://formspree.io/f/REPLACE-WITH-YOUR-FORM-ID" method="POST">
+            <input type="email" name="email" placeholder="you@email.com" required>
+            <button type="submit">Notify me</button>
+          </form>
+          <p class="small">No spam. Just a single launch email. Unsubscribe anytime.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="container footer-row">
+      <div class="copy">
+        © 2026 Clipprr · Made in the UK<br>
+        <span style="font-size: 12px; color: var(--fg-dim);">
+          Clipprr earns a small commission on some purchases via affiliate links. This doesn't change the price you pay.
+        </span>
+      </div>
+      <div class="footer-links">
+        <a href="mailto:mert@clipprr.co.uk">Contact</a>
+        <a href="/privacy.html">Privacy</a>
+        <a href="/terms.html">Terms</a>
+      </div>
+    </div>
+  </footer>
+
+</body>
+</html>

@@ -33,7 +33,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           )}
         </>
       ) : (
-        <p className="text-dim">Type to search across {(await import('@/lib/data')).getAllProducts ? '160+' : 'all'} products.</p>
+        <p className="text-dim">Type to search across the catalogue.</p>
       )}
     </section>
   );

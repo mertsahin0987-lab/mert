@@ -37,6 +37,11 @@ yarn-error.*
 # scraper output
 scripts/scrape-output/
 
+# Next.js (web/)
+web/node_modules/
+web/.next/
+web/out/
+
 # typescript
 *.tsbuildinfo
 

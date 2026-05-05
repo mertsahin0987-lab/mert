@@ -1,8 +1,0 @@
-{
-  "status": 404,
-  "headers": {
-    "x-nextjs-stale-time": "4294967294",
-    "x-nextjs-prerender": "1",
-    "x-next-cache-tags": "_N_T_/layout,_N_T_/categories/layout,_N_T_/categories/[name]/layout,_N_T_/categories/[name]/page,_N_T_/categories/capes%20%26%20aprons"
-  }
-}

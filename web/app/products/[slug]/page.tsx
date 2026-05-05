@@ -1,0 +1,103 @@
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { PriceList } from '@/components/PriceList';
+import { ProductCard } from '@/components/ProductCard';
+import {
+  getAllProducts,
+  getProductBySlug,
+  getProductPrices,
+  getProductsByBrandId,
+  slugify,
+} from '@/lib/data';
+
+export const revalidate = 600;
+
+export async function generateStaticParams() {
+  const all = await getAllProducts();
+  return all.map((p) => ({ slug: p.slug }));
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) return { title: 'Not found' };
+  return {
+    title: `${product.brand_name} ${product.name} — UK price comparison`,
+    description: `Live prices for the ${product.brand_name} ${product.name} across every major UK retailer. Compare and find the cheapest deal today.`,
+  };
+}
+
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product) notFound();
+
+  const [prices, sameBrand] = await Promise.all([
+    getProductPrices(product.id),
+    getProductsByBrandId(product.brand_id),
+  ]);
+  const related = sameBrand.filter((p) => p.id !== product.id).slice(0, 4);
+  const cheapest = prices.length > 0 ? Math.min(...prices.map((p) => p.price)) : product.base_price;
+
+  return (
+    <article>
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        {/* Breadcrumbs */}
+        <nav className="text-sm text-dim mb-6 flex gap-2 items-center">
+          <Link href="/" className="hover:text-ink">Home</Link>
+          <span>/</span>
+          <Link href={`/brands/${slugify(product.brand_name)}`} className="hover:text-ink">{product.brand_name}</Link>
+          <span>/</span>
+          <span className="text-ink truncate max-w-md">{product.name}</span>
+        </nav>
+
+        <div className="grid lg:grid-cols-2 gap-12">
+          {/* Image */}
+          <div className="bg-cream rounded-md aspect-square overflow-hidden">
+            {product.image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={product.image_url} alt={product.name} className="w-full h-full object-contain p-12" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-dim">No image</div>
+            )}
+          </div>
+
+          {/* Info + price comparison */}
+          <div>
+            <div className="text-xs font-bold uppercase tracking-widest text-accent mb-3">
+              {product.brand_name} · {product.category}
+            </div>
+            <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
+              {product.name}
+            </h1>
+            {prices.length > 0 && (
+              <div className="text-2xl font-bold text-ink mb-2">
+                From <span className="text-accent">£{cheapest.toFixed(2)}</span>
+              </div>
+            )}
+            {product.description && (
+              <p className="text-muted mb-8 leading-relaxed">{product.description}</p>
+            )}
+
+            <div className="mb-3 text-xs font-bold text-ink uppercase tracking-widest">
+              Where to buy
+            </div>
+            <PriceList prices={prices} />
+          </div>
+        </div>
+
+        {/* Related */}
+        {related.length > 0 && (
+          <section className="mt-24">
+            <div className="mb-8">
+              <h2 className="text-3xl font-bold">More from {product.brand_name}</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8">
+              {related.map((p) => <ProductCard key={p.id} product={p} />)}
+            </div>
+          </section>
+        )}
+      </div>
+    </article>
+  );
+}

@@ -104,8 +104,8 @@ export default async function HomePage() {
         <p className="text-muted text-lg leading-relaxed">
           The app launches on iOS &amp; Android soon — with push alerts on price drops, restocks
           and VAT-free events. Sign up for early access at{' '}
-          <a href="mailto:mert@clipprr.co.uk" className="text-ink underline underline-offset-4 hover:text-accent">
-            mert@clipprr.co.uk
+          <a href="mailto:info@clipprr.co.uk" className="text-ink underline underline-offset-4 hover:text-accent">
+            info@clipprr.co.uk
           </a>.
         </p>
       </section>

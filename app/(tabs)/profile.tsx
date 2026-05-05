@@ -135,7 +135,7 @@ export default function ProfileScreen() {
             colors={colors}
             onPress={() =>
               Linking.openURL(
-                'mailto:mert@clipprr.co.uk?subject=Clipprr%20app%20feedback'
+                'mailto:info@clipprr.co.uk?subject=Clipprr%20app%20feedback'
               ).catch(() => {})
             }
           />

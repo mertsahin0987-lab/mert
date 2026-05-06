@@ -16,6 +16,7 @@ export type Product = {
   category: string;
   image_url: string | null;
   base_price: number;
+  compare_at_price: number | null;  // RRP / pre-sale price; if > base_price, it's on sale
   description: string | null;
   is_new: boolean;
   trending: boolean;
@@ -55,6 +56,7 @@ function toProduct(p: any, brandName: string): Product {
     category: p.category,
     image_url: p.image_url,
     base_price: Number(p.base_price),
+    compare_at_price: p.compare_at_price != null ? Number(p.compare_at_price) : null,
     description: p.description,
     is_new: p.is_new,
     trending: p.trending,
@@ -88,7 +90,7 @@ export async function getAllProducts(): Promise<Product[]> {
   const [productsRes, brandMap] = await Promise.all([
     supabase
       .from('products')
-      .select('id, name, brand_id, category, image_url, base_price, description, is_new, trending')
+      .select('id, name, brand_id, category, image_url, base_price, compare_at_price, description, is_new, trending')
       .order('id'),
     getBrandNameMap(),
   ]);
@@ -130,6 +132,22 @@ export async function getProductPrices(productId: string): Promise<RetailerPrice
     url: r.url,
     in_stock: r.in_stock,
   }));
+}
+
+// ---------------------------------------------------------------------------
+// Sale items — products with compare_at_price > base_price
+// ---------------------------------------------------------------------------
+
+export async function getSaleProducts(): Promise<Product[]> {
+  const all = await getAllProducts();
+  return all
+    .filter((p) => p.compare_at_price != null && p.compare_at_price > p.base_price)
+    .sort((a, b) => {
+      // Biggest discount first
+      const da = (a.compare_at_price! - a.base_price) / a.compare_at_price!;
+      const db = (b.compare_at_price! - b.base_price) / b.compare_at_price!;
+      return db - da;
+    });
 }
 
 // ---------------------------------------------------------------------------

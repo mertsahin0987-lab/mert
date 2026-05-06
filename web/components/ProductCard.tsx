@@ -12,10 +12,10 @@ export function ProductCard({ product }: { product: Product }) {
     <Link href={`/products/${product.slug}`} className="group block">
       {/* Floating image — no tile, no border, just blends into the page bg */}
       <div className="relative aspect-square overflow-hidden mb-4">
-        {product.image_url ? (
+        {(product.image_url || product.image_key) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.image_url}
+            src={product.image_url ?? `/products/${product.image_key}.png`}
             alt={product.name}
             className="absolute inset-0 w-full h-full object-contain p-2 group-hover:scale-[1.04] transition-transform duration-700 ease-out"
             loading="lazy"

@@ -14,6 +14,7 @@ export type Product = {
   brand_name: string;
   brand_id: string;
   category: string;
+  image_key: string | null;
   image_url: string | null;
   base_price: number;
   compare_at_price: number | null;  // RRP / pre-sale price; if > base_price, it's on sale
@@ -54,6 +55,7 @@ function toProduct(p: any, brandName: string): Product {
     brand_name: brandName,
     brand_id: p.brand_id,
     category: p.category,
+    image_key: p.image_key ?? null,
     image_url: p.image_url,
     base_price: Number(p.base_price),
     compare_at_price: p.compare_at_price != null ? Number(p.compare_at_price) : null,
@@ -90,7 +92,7 @@ export async function getAllProducts(): Promise<Product[]> {
   const [productsRes, brandMap] = await Promise.all([
     supabase
       .from('products')
-      .select('id, name, brand_id, category, image_url, base_price, compare_at_price, description, is_new, trending')
+      .select('id, name, brand_id, category, image_key, image_url, base_price, compare_at_price, description, is_new, trending')
       .order('id'),
     getBrandNameMap(),
   ]);

@@ -1,7 +1,7 @@
 import { ProductCard } from '@/components/ProductCard';
 import { getAllProducts } from '@/lib/data';
 
-export const revalidate = 600;
+export const revalidate = 60;
 export const metadata = { title: 'All products' };
 
 export default async function AllProductsPage() {

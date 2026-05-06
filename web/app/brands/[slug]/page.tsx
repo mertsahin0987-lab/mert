@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { ProductCard } from '@/components/ProductCard';
 import { getBrandBySlug, getBrands, getProductsByBrandId } from '@/lib/data';
 
-export const revalidate = 600;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const brands = await getBrands();

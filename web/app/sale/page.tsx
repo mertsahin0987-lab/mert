@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
 import { getSaleProducts } from '@/lib/data';
 
-export const revalidate = 600;
+export const revalidate = 60;
 export const metadata = {
   title: 'Sale — barber tool deals',
   description:

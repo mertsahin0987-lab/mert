@@ -10,7 +10,7 @@ import {
   slugify,
 } from '@/lib/data';
 
-export const revalidate = 600;
+export const revalidate = 60;
 
 export async function generateStaticParams() {
   const all = await getAllProducts();
@@ -53,10 +53,14 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
 
         <div className="grid lg:grid-cols-2 gap-12">
           {/* Image */}
-          <div className="bg-cream rounded-md aspect-square overflow-hidden">
-            {product.image_url ? (
+          <div className="aspect-square overflow-hidden">
+            {(product.image_url || product.image_key) ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={product.image_url} alt={product.name} className="w-full h-full object-contain p-12" />
+              <img
+                src={product.image_url ?? `/products/${product.image_key}.png`}
+                alt={product.name}
+                className="w-full h-full object-contain"
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-dim">No image</div>
             )}

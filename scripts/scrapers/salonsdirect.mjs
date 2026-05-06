@@ -13,7 +13,7 @@ export async function scrape(url) {
   const html = await fetchHtml(url);
   const $ = cheerio.load(html);
 
-  // 1) JSON-LD
+  // 1) JSON-LD — Salons Direct uses ProductGroup (Shopify), not plain Product
   const ldBlocks = $('script[type="application/ld+json"]')
     .map((_, el) => $(el).contents().text())
     .get();
@@ -23,15 +23,32 @@ export async function scrape(url) {
       const data = JSON.parse(block);
       const items = Array.isArray(data) ? data : [data];
       for (const item of items) {
+        // Direct Product
         const product = pickProduct(item);
-        if (!product) continue;
-        const offers = [].concat(product.offers ?? []);
-        for (const offer of offers) {
-          const price = parsePrice(offer.price ?? offer.lowPrice ?? '');
-          if (price != null) {
-            const avail = String(offer.availability ?? '').toLowerCase();
-            const inStock = avail.includes('outofstock') ? false : true;
-            return { price, inStock };
+        if (product) {
+          const offers = [].concat(product.offers ?? []);
+          for (const offer of offers) {
+            const price = parsePrice(offer.price ?? offer.lowPrice ?? '');
+            if (price != null) {
+              const avail = String(offer.availability ?? '').toLowerCase();
+              const inStock = !avail.includes('outofstock');
+              return { price, inStock };
+            }
+          }
+        }
+        // ProductGroup → variants (Shopify format)
+        if (item['@type'] === 'ProductGroup') {
+          const variants = [].concat(item.hasVariant ?? []);
+          for (const v of variants) {
+            const offers = [].concat(v.offers ?? []);
+            for (const offer of offers) {
+              const price = parsePrice(offer.price ?? offer.lowPrice ?? '');
+              if (price != null) {
+                const avail = String(offer.availability ?? '').toLowerCase();
+                const inStock = !avail.includes('outofstock');
+                return { price, inStock };
+              }
+            }
           }
         }
       }
@@ -40,9 +57,12 @@ export async function scrape(url) {
     }
   }
 
-  // 2) DOM fallback — Salons Direct uses Magento-style markup
-  const priceText = $('[data-price-amount], .price-wrapper .price, .product-info-price .price').first().text();
-  const stockText = $('.stock, .product-info-stock-sku').first().text();
+  // 2) DOM fallback — try Shopify selectors first, then Magento
+  const priceText = $(
+    '[data-product-price], .price-item--regular, .price__regular .price-item, ' +
+    '[data-price-amount], .price-wrapper .price, .product-info-price .price'
+  ).first().text();
+  const stockText = $('.product-form__submit, .stock, .product-info-stock-sku').first().text();
   const price = parsePrice(priceText);
   if (price == null) throw new Error('Could not find price on Salons Direct page');
   return { price, inStock: parseStock(stockText) };
@@ -56,3 +76,6 @@ function pickProduct(node) {
   }
   return null;
 }
+
+// Salons Direct URL can be /[alias] or /products/[handle] — both work
+// The retailer table stores the alias form; the scraper follows redirects.

@@ -47,9 +47,12 @@ export async function scrape(url) {
     }
   }
 
-  // 2) Magento DOM fallback — common selectors
+  // 2) Magento DOM fallback — scoped to the product-info area to avoid picking
+  //    up prices of related/upsell products that appear later in the DOM.
   const priceText = $(
-    '[data-price-amount], .price-wrapper .price, .product-info-price .price, .price .price'
+    '.product-info-main [data-price-amount],' +
+    '.product-info-price .price,' +
+    '.product-info-main .price-wrapper .price'
   ).first().text();
   const stockText = $('.stock, .product-info-stock-sku, .availability').first().text();
   const price = parsePrice(priceText);

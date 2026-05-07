@@ -19,7 +19,6 @@
 // (navigator.webdriver, missing chrome.runtime, fake plugins, etc.).
 import { chromium as _chromium } from 'playwright-extra';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
-import { execSync } from 'child_process';
 
 _chromium.use(StealthPlugin());
 const chromium = _chromium;
@@ -31,34 +30,19 @@ async function getContext() {
   if (browser && context) return context;
   // Try system Chrome first (harder for Cloudflare to detect vs Playwright's
   // bundled Chromium). Fall back to bundled Chromium if Chrome isn't found.
-  // headless: false so Cloudflare sees a real browser window and can't fingerprint
-  // it as automated. After launch we immediately hide Chrome via AppleScript so
-  // the window never appears on your desktop. The three disable-* flags prevent
-  // macOS from throttling JS execution in hidden windows.
   const launchOptions = {
-    headless: false,
+    headless: true,
     args: [
       '--disable-blink-features=AutomationControlled',
       '--disable-features=IsolateOrigins,site-per-process',
       '--no-sandbox',
       '--disable-setuid-sandbox',
-      '--disable-background-timer-throttling',
-      '--disable-renderer-backgrounding',
-      '--disable-backgrounding-occluded-windows',
     ],
   };
   try {
     browser = await chromium.launch({ ...launchOptions, channel: 'chrome' });
   } catch {
     browser = await chromium.launch(launchOptions);
-  }
-  // Hide the Chrome window on macOS so it never appears on screen.
-  // The process is still fully "visible" to Cloudflare (GPU, canvas, etc.)
-  // — it's just hidden from the user via the OS app-hiding API.
-  try {
-    execSync(`osascript -e 'tell application "System Events" to set visible of process "Google Chrome" to false'`, { timeout: 3000 });
-  } catch {
-    // Non-fatal — window may briefly appear if osascript isn't available
   }
   context = await browser.newContext({
     userAgent:

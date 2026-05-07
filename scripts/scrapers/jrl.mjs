@@ -7,7 +7,9 @@
 import { fetchHtml, parsePrice } from './_lib.mjs';
 
 export const retailerId = 'jrl-direct';
-export const matchesDomain = (url) => /(^|\.)jrlusa\.com$/i.test(new URL(url).hostname);
+// Supports both jrlusa.com (USD) and jrluk.co.uk (GBP — preferred for UK users)
+export const matchesDomain = (url) =>
+  /(^|\.)jrlusa\.com$|(^|\.)jrluk\.co\.uk$/i.test(new URL(url).hostname);
 
 export async function scrape(url) {
   const u = new URL(url);

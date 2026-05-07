@@ -16,7 +16,22 @@ import { parsePrice, parseStock } from './_lib.mjs';
 export const retailerId = 'chris-sons';
 export const matchesDomain = (url) => /(^|\.)chrisandsons\.co\.uk$/i.test(new URL(url).hostname);
 
+// Track whether we've warmed up the Cloudflare session this run.
+// A single homepage visit establishes trust so subsequent product pages load.
+let warmedUp = false;
+
 export async function scrape(url) {
+  if (!warmedUp) {
+    warmedUp = true;
+    try {
+      // Visit the homepage first so Cloudflare grants session cookies before
+      // we start hitting product pages. Ignore the result — we just need the
+      // cookie handshake to complete.
+      await browserFetch('https://www.chrisandsons.co.uk/');
+    } catch {
+      // Non-fatal — carry on and let the product fetch fail if CF still blocks
+    }
+  }
   const html = await browserFetch(url);
   const $ = cheerio.load(html);
 

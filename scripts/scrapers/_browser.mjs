@@ -30,13 +30,22 @@ async function getContext() {
   if (browser && context) return context;
   // Try system Chrome first (harder for Cloudflare to detect vs Playwright's
   // bundled Chromium). Fall back to bundled Chromium if Chrome isn't found.
+  // headless: false so Cloudflare sees a real browser window (not detectable as
+  // automated). The window is parked off-screen so it never appears on your desktop.
+  // The three disable-* flags prevent Chrome from throttling JS in off-screen
+  // windows, which is essential for Cloudflare's challenge JS to complete.
   const launchOptions = {
-    headless: true,
+    headless: false,
     args: [
       '--disable-blink-features=AutomationControlled',
       '--disable-features=IsolateOrigins,site-per-process',
       '--no-sandbox',
       '--disable-setuid-sandbox',
+      '--window-position=-2000,-2000',  // park off-screen — invisible to user
+      '--window-size=1280,800',
+      '--disable-background-timer-throttling',
+      '--disable-renderer-backgrounding',
+      '--disable-backgrounding-occluded-windows',
     ],
   };
   try {

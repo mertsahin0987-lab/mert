@@ -28,13 +28,22 @@ let context = null;
 
 async function getContext() {
   if (browser && context) return context;
-  browser = await chromium.launch({
+  // Try system Chrome first (harder for Cloudflare to detect vs Playwright's
+  // bundled Chromium). Fall back to bundled Chromium if Chrome isn't found.
+  const launchOptions = {
     headless: true,
     args: [
-      '--disable-blink-features=AutomationControlled', // hide the "automation" flag
+      '--disable-blink-features=AutomationControlled',
       '--disable-features=IsolateOrigins,site-per-process',
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
     ],
-  });
+  };
+  try {
+    browser = await chromium.launch({ ...launchOptions, channel: 'chrome' });
+  } catch {
+    browser = await chromium.launch(launchOptions);
+  }
   context = await browser.newContext({
     userAgent:
       'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
@@ -58,26 +67,33 @@ async function getContext() {
  *   - polls the title for up to 25s after navigating
  *   - retries the navigation once if the challenge stalls
  */
-export async function browserFetch(url, { timeoutMs = 60000 } = {}) {
+export async function browserFetch(url, { timeoutMs = 90000 } = {}) {
   const ctx = await getContext();
   const page = await ctx.newPage();
   try {
-    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: timeoutMs });
+    // Use 'load' (not 'domcontentloaded') so the CF challenge JS has already
+    // started executing before we check the title.
+    await page.goto(url, { waitUntil: 'load', timeout: timeoutMs });
 
-    // If we landed on a Cloudflare interstitial, poll the title for up to 45s.
-    // Stealth + networkidle is what actually beats Cloudflare's JS challenge.
+    // If we landed on a Cloudflare interstitial, poll the title for up to 60s.
+    // The challenge runs JS that eventually redirects to the real page.
     const isChallenge = (t) =>
       /just a moment|attention required|checking your browser|verifying you/i.test(t);
 
     let title = await page.title();
     if (isChallenge(title)) {
       const start = Date.now();
-      while (Date.now() - start < 45000 && isChallenge(title)) {
-        await page.waitForTimeout(1500);
+      while (Date.now() - start < 60000 && isChallenge(title)) {
+        await page.waitForTimeout(2000);
         title = await page.title();
       }
       // After challenge clears, wait for the real page to fully load
-      await page.waitForLoadState('networkidle', { timeout: 15000 }).catch(() => {});
+      if (!isChallenge(title)) {
+        await page.waitForLoadState('networkidle', { timeout: 20000 }).catch(() => {});
+      }
+    } else {
+      // Even without a challenge, allow a brief networkidle settle
+      await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => {});
     }
     return await page.content();
   } finally {

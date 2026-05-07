@@ -17,19 +17,24 @@ export const retailerId = 'chris-sons';
 export const matchesDomain = (url) => /(^|\.)chrisandsons\.co\.uk$/i.test(new URL(url).hostname);
 
 // Track whether we've warmed up the Cloudflare session this run.
-// A single homepage visit establishes trust so subsequent product pages load.
+// Visiting a couple of non-CF sites first gives the browser a browsing
+// history that makes Cloudflare more likely to pass us through.
 let warmedUp = false;
 
 export async function scrape(url) {
   if (!warmedUp) {
     warmedUp = true;
-    try {
-      // Visit the homepage first so Cloudflare grants session cookies before
-      // we start hitting product pages. Ignore the result — we just need the
-      // cookie handshake to complete.
-      await browserFetch('https://www.chrisandsons.co.uk/');
-    } catch {
-      // Non-fatal — carry on and let the product fetch fail if CF still blocks
+    const warmupSites = [
+      'https://www.coolblades.co.uk/',       // non-CF, same industry
+      'https://www.google.co.uk/',            // establishes normal browsing history
+      'https://www.chrisandsons.co.uk/',      // CF homepage — get the session cookie
+    ];
+    for (const site of warmupSites) {
+      try {
+        await browserFetch(site);
+      } catch {
+        // Non-fatal
+      }
     }
   }
   const html = await browserFetch(url);

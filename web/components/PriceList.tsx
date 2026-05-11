@@ -1,4 +1,5 @@
 import type { RetailerPrice } from '@/lib/data';
+import { affiliateUrl } from '@/lib/affiliate';
 
 export function PriceList({ prices }: { prices: RetailerPrice[] }) {
   if (!prices.length) {
@@ -19,7 +20,7 @@ export function PriceList({ prices }: { prices: RetailerPrice[] }) {
         return (
           <a
             key={p.retailer_id}
-            href={p.url ?? '#'}
+            href={affiliateUrl(p.url)}
             target="_blank"
             rel="noopener noreferrer"
             className={`group block bg-paper border ${

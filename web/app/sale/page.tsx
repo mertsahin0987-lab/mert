@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
 import { getSaleProducts } from '@/lib/data';
+import { getUserAlertedProductIds } from '@/lib/alerts';
 
 export const revalidate = 60;
 export const metadata = {
@@ -10,7 +11,10 @@ export const metadata = {
 };
 
 export default async function SalePage() {
-  const products = await getSaleProducts();
+  const [products, alerted] = await Promise.all([
+    getSaleProducts(),
+    getUserAlertedProductIds(),
+  ]);
   return (
     <section className="mx-auto max-w-6xl px-6 py-16">
       <div className="mb-10">
@@ -45,7 +49,7 @@ export default async function SalePage() {
           </p>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10">
             {products.map((p) => (
-              <ProductCard key={p.id} product={p} />
+              <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />
             ))}
           </div>
         </>

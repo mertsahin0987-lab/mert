@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase-server';
+import { getUserAlerts } from '@/lib/alerts';
 import { signOut } from '@/app/auth/actions';
 
 export const metadata: Metadata = {
@@ -19,6 +20,8 @@ export default async function AccountPage() {
   if (!user) {
     redirect('/login');
   }
+
+  const alerts = await getUserAlerts();
 
   const createdAt = new Date(user.created_at);
   const memberSince = createdAt.toLocaleDateString('en-GB', {
@@ -74,7 +77,11 @@ export default async function AccountPage() {
             Alerts
           </div>
           <div className="text-ink font-semibold text-lg">Price alerts</div>
-          <div className="text-sm text-muted mt-1">Coming soon</div>
+          <div className="text-sm text-muted mt-1">
+            {alerts.length === 0
+              ? 'You aren’t tracking any tools yet'
+              : `Tracking ${alerts.length} ${alerts.length === 1 ? 'tool' : 'tools'}`}
+          </div>
         </Link>
       </div>
 

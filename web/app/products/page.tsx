@@ -1,11 +1,15 @@
 import { ProductCard } from '@/components/ProductCard';
 import { getAllProducts } from '@/lib/data';
+import { getUserAlertedProductIds } from '@/lib/alerts';
 
 export const revalidate = 60;
 export const metadata = { title: 'All products' };
 
 export default async function AllProductsPage() {
-  const products = await getAllProducts();
+  const [products, alerted] = await Promise.all([
+    getAllProducts(),
+    getUserAlertedProductIds(),
+  ]);
   return (
     <section className="mx-auto max-w-7xl px-6 py-16">
       <div className="mb-10">
@@ -14,7 +18,7 @@ export default async function AllProductsPage() {
         <p className="text-muted">{products.length} barber tools tracked across UK retailers</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
-        {products.map((p) => <ProductCard key={p.id} product={p} />)}
+        {products.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
       </div>
     </section>
   );

@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { PriceList } from '@/components/PriceList';
 import { ProductCard } from '@/components/ProductCard';
+import { BellButton } from '@/components/BellButton';
 import {
   getAllProducts,
   getProductBySlug,
@@ -9,6 +10,7 @@ import {
   getProductsByBrandId,
   slugify,
 } from '@/lib/data';
+import { getUserAlertedProductIds } from '@/lib/alerts';
 
 export const revalidate = 60;
 
@@ -32,11 +34,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [prices, sameBrand] = await Promise.all([
+  const [prices, sameBrand, alerted] = await Promise.all([
     getProductPrices(product.id),
     getProductsByBrandId(product.brand_id),
+    getUserAlertedProductIds(),
   ]);
   const related = sameBrand.filter((p) => p.id !== product.id).slice(0, 4);
+  const isTracking = alerted.has(product.id);
   const cheapest = prices.length > 0 ? Math.min(...prices.map((p) => p.price)) : product.base_price;
 
   return (
@@ -75,10 +79,19 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               {product.name}
             </h1>
             {prices.length > 0 && (
-              <div className="text-2xl font-bold text-ink mb-2">
+              <div className="text-2xl font-bold text-ink mb-4">
                 From <span className="text-accent">£{cheapest.toFixed(2)}</span>
               </div>
             )}
+
+            <div className="mb-6">
+              <BellButton
+                productId={product.id}
+                initialTracking={isTracking}
+                variant="inline"
+              />
+            </div>
+
             {product.description && (
               <p className="text-muted mb-8 leading-relaxed">{product.description}</p>
             )}
@@ -97,7 +110,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               <h2 className="text-3xl font-bold">More from {product.brand_name}</h2>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-8">
-              {related.map((p) => <ProductCard key={p.id} product={p} />)}
+              {related.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
             </div>
           </section>
         )}

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { ProductCard } from '@/components/ProductCard';
 import { getBrandBySlug, getBrands, getProductsByBrandId } from '@/lib/data';
+import { getUserAlertedProductIds } from '@/lib/alerts';
 
 export const revalidate = 60;
 
@@ -23,7 +24,10 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   const brand = await getBrandBySlug(slug);
   if (!brand) notFound();
-  const products = await getProductsByBrandId(brand.id);
+  const [products, alerted] = await Promise.all([
+    getProductsByBrandId(brand.id),
+    getUserAlertedProductIds(),
+  ]);
   return (
     <section className="mx-auto max-w-7xl px-6 py-16">
       <div className="mb-10">
@@ -35,7 +39,7 @@ export default async function BrandPage({ params }: { params: Promise<{ slug: st
         <p className="text-dim">No products tracked for this brand yet.</p>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
-          {products.map((p) => <ProductCard key={p.id} product={p} />)}
+          {products.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
         </div>
       )}
     </section>

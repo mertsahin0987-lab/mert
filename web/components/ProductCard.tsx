@@ -1,7 +1,15 @@
 import Link from 'next/link';
 import type { Product } from '@/lib/data';
+import { BellButton } from './BellButton';
 
-export function ProductCard({ product }: { product: Product }) {
+export function ProductCard({
+  product,
+  tracking = false,
+}: {
+  product: Product;
+  /** Pass-through: is the current user belling this product? Defaults to false. */
+  tracking?: boolean;
+}) {
   // Sale detection — if we have a higher "compare_at_price", this product is on sale
   const onSale = product.compare_at_price != null && product.compare_at_price > product.base_price;
   const discountPct = onSale
@@ -12,6 +20,7 @@ export function ProductCard({ product }: { product: Product }) {
     <Link href={`/products/${product.slug}`} className="group block">
       {/* Floating image — no tile, no border, just blends into the page bg */}
       <div className="relative aspect-square overflow-hidden mb-4">
+        <BellButton productId={product.id} initialTracking={tracking} variant="card" />
         {(product.image_url || product.image_key) ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -24,7 +33,7 @@ export function ProductCard({ product }: { product: Product }) {
           <div className="w-full h-full flex items-center justify-center text-dim text-xs">No image</div>
         )}
         {onSale && (
-          <span className="absolute top-1 left-1 bg-accent text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">
+          <span className="absolute top-2 left-2 bg-accent text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded">
             -{discountPct}%
           </span>
         )}

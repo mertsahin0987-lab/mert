@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { ProductCard } from '@/components/ProductCard';
 import { getCategories, getProductsByCategory } from '@/lib/data';
+import { getUserAlertedProductIds } from '@/lib/alerts';
 
 export const revalidate = 60;
 
@@ -20,7 +21,10 @@ export async function generateMetadata({ params }: { params: Promise<{ name: str
 
 export default async function CategoryPage({ params }: { params: Promise<{ name: string }> }) {
   const { name } = await params;
-  const products = await getProductsByCategory(name);
+  const [products, alerted] = await Promise.all([
+    getProductsByCategory(name),
+    getUserAlertedProductIds(),
+  ]);
   if (!products.length) notFound();
   const cap = name.charAt(0).toUpperCase() + name.slice(1);
   return (
@@ -31,7 +35,7 @@ export default async function CategoryPage({ params }: { params: Promise<{ name:
         <p className="text-muted">{products.length} products</p>
       </div>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
-        {products.map((p) => <ProductCard key={p.id} product={p} />)}
+        {products.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
       </div>
     </section>
   );

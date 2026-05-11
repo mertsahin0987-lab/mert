@@ -1,11 +1,18 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
 import { getAllProducts, getBrands } from '@/lib/data';
+import { getUserAlertedProductIds } from '@/lib/alerts';
 
+// Page becomes dynamic because we read the auth cookie to know which products
+// have a bell on them for the current user.
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [products, brands] = await Promise.all([getAllProducts(), getBrands()]);
+  const [products, brands, alerted] = await Promise.all([
+    getAllProducts(),
+    getBrands(),
+    getUserAlertedProductIds(),
+  ]);
   const trending = products.filter((p) => p.trending).slice(0, 8);
   const newReleases = products.filter((p) => p.is_new).slice(0, 4);
   const featured = products.slice(0, 8);
@@ -48,7 +55,7 @@ export default async function HomePage() {
           title="Trending"
           link={{ label: 'View all', href: '/products' }}
         >
-          <ProductGrid products={trending} />
+          <ProductGrid products={trending} alerted={alerted} />
         </Section>
       )}
 
@@ -66,7 +73,7 @@ export default async function HomePage() {
               <Link href="/products" className="text-sm font-semibold text-ink hover:text-accent">View all →</Link>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-10">
-              {newReleases.map((p) => <ProductCard key={p.id} product={p} />)}
+              {newReleases.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
             </div>
           </div>
         </section>
@@ -93,7 +100,7 @@ export default async function HomePage() {
         title="The whole list"
         link={{ label: `See all ${products.length} →`, href: '/products' }}
       >
-        <ProductGrid products={featured} />
+        <ProductGrid products={featured} alerted={alerted} />
       </Section>
 
       {/* CLOSING STATEMENT — minimal, no graphics */}
@@ -144,10 +151,10 @@ function Section({
   );
 }
 
-function ProductGrid({ products }: { products: any[] }) {
+function ProductGrid({ products, alerted }: { products: any[]; alerted: Set<string> }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10">
-      {products.map((p) => <ProductCard key={p.id} product={p} />)}
+      {products.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
     </div>
   );
 }

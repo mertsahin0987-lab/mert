@@ -17,7 +17,8 @@ export async function Header() {
         <nav className="hidden md:flex items-center gap-6 text-sm text-muted">
           <Link href="/categories/clippers" className="hover:text-ink transition-colors">Clippers</Link>
           <Link href="/categories/trimmers" className="hover:text-ink transition-colors">Trimmers</Link>
-          <Link href="/categories/kits" className="hover:text-ink transition-colors">Kits</Link>
+          <Link href="/categories/shavers" className="hover:text-ink transition-colors">Shavers</Link>
+          <Link href="/categories/sets" className="hover:text-ink transition-colors">Sets</Link>
           <Link
             href="/sale"
             className="text-red-600 font-bold hover:text-red-700 transition-colors"

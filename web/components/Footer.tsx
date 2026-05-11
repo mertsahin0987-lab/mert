@@ -38,6 +38,12 @@ export function Footer() {
             We earn a small commission on some retailer clicks. Never changes the price you pay.
           </span>
         </div>
+        <div className="mt-4 text-[11px] text-dim leading-relaxed max-w-3xl">
+          Prices are indicative — always confirm at the retailer&apos;s checkout. Product images
+          and brand names are property of their respective owners and are shown for the purpose
+          of product identification. Clipprr is not affiliated with or endorsed by any brand or
+          retailer listed.
+        </div>
       </div>
     </footer>
   );

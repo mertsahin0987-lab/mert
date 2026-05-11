@@ -90,9 +90,48 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-bold text-ink mb-3">Intellectual property</h2>
           <p>
-            The Clipprr name, logo, design and code are our property. Product names, brand
-            logos and product images belong to the respective brands and retailers; they appear
-            here for the purpose of price comparison only.
+            The Clipprr name, logo, design and code are our property. We claim no rights in any
+            third-party content.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-ink mb-3">Trademarks &amp; brand names</h2>
+          <p>
+            All product names, brand names, logos and trademarks shown on the Site are the
+            property of their respective owners. Their appearance here is for the limited
+            purpose of identifying products in our price-comparison listings (nominative fair
+            use). Clipprr is not affiliated with, endorsed by, sponsored by, or otherwise
+            connected to any of the brands or retailers shown unless explicitly stated.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-ink mb-3">Product images</h2>
+          <p>
+            Product images displayed on the Site are sourced from manufacturers and retailers
+            and shown for the sole purpose of identifying the products to which our price
+            listings refer. If you are the rights holder for any image or content shown and
+            would like it removed or attributed differently, please contact us — see &quot;Takedown
+            requests&quot; below — and we&apos;ll respond promptly.
+          </p>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-bold text-ink mb-3">Takedown requests</h2>
+          <p>
+            If you believe content on this Site infringes your intellectual-property rights,
+            email{' '}
+            <a href="mailto:info@clipprr.co.uk" className="text-ink underline">info@clipprr.co.uk</a>
+            {' '}with:
+          </p>
+          <ul className="list-disc pl-6 space-y-2 mt-3">
+            <li>The specific URL(s) on Clipprr where the content appears</li>
+            <li>Identification of the work or trademark you claim is infringed</li>
+            <li>Your contact details and a statement that you&apos;re authorised to act on the rights holder&apos;s behalf</li>
+          </ul>
+          <p className="mt-3">
+            We aim to action valid takedown requests within 3 working days.
           </p>
         </section>
 

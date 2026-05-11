@@ -7,7 +7,16 @@
  * Chris & Sons runs on Magento. Magento product pages embed a JSON-LD
  * Product schema with current price + availability — same approach as
  * the BigCommerce / Shopify scrapers.
+ *
+ * IMPORTANT — VAT handling:
+ * C&S is a trade supplier, so all prices on the site (and in JSON-LD/DOM
+ * markup) are EX-VAT by default. Every other UK retailer we track shows
+ * INC-VAT prices to consumers. We multiply C&S prices by 1.20 so the
+ * comparison on Clipprr is apples-to-apples (all prices inc 20% UK VAT).
  */
+
+const VAT_MULTIPLIER = 1.20;
+const addVat = (price) => Math.round(price * VAT_MULTIPLIER * 100) / 100;
 
 import * as cheerio from 'cheerio';
 import { browserFetch } from './_browser.mjs';
@@ -58,7 +67,7 @@ export async function scrape(url) {
           if (price != null) {
             const avail = String(offer.availability ?? '').toLowerCase();
             const inStock = avail.includes('outofstock') ? false : true;
-            return { price, inStock };
+            return { price: addVat(price), inStock };
           }
         }
       }
@@ -77,7 +86,7 @@ export async function scrape(url) {
   const stockText = $('.stock, .product-info-stock-sku, .availability').first().text();
   const price = parsePrice(priceText);
   if (price == null) throw new Error('Could not find price on Chris & Sons page');
-  return { price, inStock: parseStock(stockText) };
+  return { price: addVat(price), inStock: parseStock(stockText) };
 }
 
 function pickProduct(node) {

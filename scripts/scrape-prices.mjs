@@ -32,6 +32,9 @@ import * as chrisandsons from './scrapers/chrisandsons.mjs';
 import * as jrl from './scrapers/jrl.mjs';
 import * as amazon from './scrapers/amazon.mjs';
 import * as beautyworldplus from './scrapers/beautyworldplus.mjs';
+import * as esondirect from './scrapers/esondirect.mjs';
+import * as mcrbarber from './scrapers/mcrbarber.mjs';
+import * as barberbeauty from './scrapers/barberbeauty.mjs';
 import { closeBrowser } from './scrapers/_browser.mjs';
 
 // ============================================================================
@@ -73,7 +76,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_KEY || PUBLIC_KEY, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
 
-const SCRAPERS = [coolblades, salonsdirect, tomb45, chrisandsons, jrl, amazon, beautyworldplus];
+const SCRAPERS = [coolblades, salonsdirect, tomb45, chrisandsons, jrl, amazon, beautyworldplus, esondirect, mcrbarber, barberbeauty];
 
 // ============================================================================
 // Dispatch

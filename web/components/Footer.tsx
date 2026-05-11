@@ -28,6 +28,7 @@ export function Footer() {
               <li><a href="mailto:info@clipprr.co.uk" className="hover:text-ink">info@clipprr.co.uk</a></li>
               <li><Link href="/privacy" className="hover:text-ink">Privacy</Link></li>
               <li><Link href="/terms" className="hover:text-ink">Terms</Link></li>
+              <li><Link href="/cookies" className="hover:text-ink">Cookies</Link></li>
             </ul>
           </div>
         </div>

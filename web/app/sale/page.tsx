@@ -1,7 +1,9 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
-import { getSaleProducts } from '@/lib/data';
+import { Filters } from '@/components/Filters';
+import { getSaleProducts, getBrands } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
+import { applyFilters, readFilters } from '@/lib/filters';
 
 export const revalidate = 60;
 export const metadata = {
@@ -10,11 +12,22 @@ export const metadata = {
     'Every barber tool currently discounted across UK retailers. Compare deals on clippers, trimmers and shavers.',
 };
 
-export default async function SalePage() {
-  const [products, alerted] = await Promise.all([
+export default async function SalePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = await searchParams;
+  const filters = readFilters(sp);
+
+  const [products, brands, alerted] = await Promise.all([
     getSaleProducts(),
+    getBrands(),
     getUserAlertedProductIds(),
   ]);
+
+  const filtered = applyFilters(products, filters);
+
   return (
     <section className="mx-auto max-w-6xl px-6 py-16">
       <div className="mb-10">
@@ -44,14 +57,18 @@ export default async function SalePage() {
         </div>
       ) : (
         <>
-          <p className="text-sm text-dim mb-8">
-            {products.length} {products.length === 1 ? 'product' : 'products'} on sale right now.
-          </p>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10">
-            {products.map((p) => (
-              <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />
-            ))}
-          </div>
+          {/* On the sale page we hide the "On sale" toggle (redundant — everything here is on sale) */}
+          <Filters brands={brands} hideSale resultCount={filtered.length} />
+
+          {filtered.length === 0 ? (
+            <p className="text-dim text-center py-16">No products match those filters.</p>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10">
+              {filtered.map((p) => (
+                <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />
+              ))}
+            </div>
+          )}
         </>
       )}
     </section>

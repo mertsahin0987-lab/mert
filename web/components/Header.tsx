@@ -14,9 +14,10 @@ export async function Header() {
         </Link>
 
         {/* Primary nav — Sale gets bright red so it pops */}
-        <nav className="hidden md:flex items-center gap-8 text-sm text-muted">
+        <nav className="hidden md:flex items-center gap-6 text-sm text-muted">
           <Link href="/categories/clippers" className="hover:text-ink transition-colors">Clippers</Link>
           <Link href="/categories/trimmers" className="hover:text-ink transition-colors">Trimmers</Link>
+          <Link href="/categories/kits" className="hover:text-ink transition-colors">Kits</Link>
           <Link
             href="/sale"
             className="text-red-600 font-bold hover:text-red-700 transition-colors"

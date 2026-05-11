@@ -1,8 +1,8 @@
 import { ProductCard } from '@/components/ProductCard';
-import { Filters } from '@/components/Filters';
-import { searchProducts, getBrands } from '@/lib/data';
+import { FilterSidebar, FilterTopbar, FiltersProvider } from '@/components/Filters';
+import { searchProducts, getBrands, getCategories } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
-import { applyFilters, readFilters } from '@/lib/filters';
+import { applyFilters, readFilters, facetCounts } from '@/lib/filters';
 
 export const revalidate = 60;
 export const metadata = { title: 'Search' };
@@ -16,13 +16,15 @@ export default async function SearchPage({
   const q = typeof sp.q === 'string' ? sp.q : '';
   const filters = readFilters(sp);
 
-  const [results, brands, alerted] = await Promise.all([
+  const [results, brands, categories, alerted] = await Promise.all([
     q ? searchProducts(q) : Promise.resolve([]),
     getBrands(),
+    getCategories(),
     getUserAlertedProductIds(),
   ]);
 
   const filtered = applyFilters(results, filters);
+  const counts = facetCounts(results, filters);
 
   return (
     <section className="mx-auto max-w-7xl px-6 py-16">
@@ -38,19 +40,33 @@ export default async function SearchPage({
           />
         </form>
       </div>
-      {q ? (
-        <>
-          {results.length > 0 && <Filters brands={brands} resultCount={filtered.length} />}
-          {filtered.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-8">
-              {filtered.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
-            </div>
-          ) : (
-            <p className="text-dim">No matches. Try a different brand or product name.</p>
-          )}
-        </>
-      ) : (
+
+      {!q ? (
         <p className="text-dim">Type to search across the catalogue.</p>
+      ) : results.length === 0 ? (
+        <p className="text-dim">No matches for &quot;{q}&quot;. Try a different brand or product name.</p>
+      ) : (
+        <FiltersProvider>
+          <div className="grid md:grid-cols-[220px_1fr] lg:grid-cols-[240px_1fr] gap-10">
+            <FilterSidebar
+              brands={brands}
+              categories={categories}
+              brandCounts={counts.brand}
+              categoryCounts={counts.category}
+              priceCounts={counts.price}
+            />
+            <div>
+              <FilterTopbar resultCount={filtered.length} />
+              {filtered.length === 0 ? (
+                <p className="text-dim text-center py-16">No products match those filters.</p>
+              ) : (
+                <div className="grid grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-8">
+                  {filtered.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
+                </div>
+              )}
+            </div>
+          </div>
+        </FiltersProvider>
       )}
     </section>
   );

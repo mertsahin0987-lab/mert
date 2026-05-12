@@ -9,6 +9,11 @@
  *
  * UK Shopify stores show inc-VAT prices to consumers by default, so no
  * adjustment is needed on the price returned.
+ *
+ * Stock detection: many small Shopify stores have inventory tracking
+ * DISABLED, in which case `variant.available` is missing or null. We treat
+ * "missing available field" the same as "yes, it's buyable" — only mark
+ * a product OOS when the API explicitly says `available: false`.
  */
 
 import { fetchHtml, parsePrice } from './_lib.mjs';
@@ -24,9 +29,11 @@ export async function shopifyScrape(url) {
     throw new Error(`No variants in Shopify product JSON at ${jsonUrl}`);
   }
 
-  // Prefer an in-stock variant (so we report the correct price for what's
-  // actually available), but fall back to the first variant if all are out.
-  const available = variants.find((v) => v.available);
+  // Some stores omit the `available` field entirely → treat as available.
+  // Only treat as OOS when ALL variants explicitly say available: false.
+  const isVariantAvailable = (v) => v.available !== false;
+
+  const available = variants.find(isVariantAvailable);
   const v = available ?? variants[0];
   const price = parsePrice(v.price);
   if (price == null) {

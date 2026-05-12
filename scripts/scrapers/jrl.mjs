@@ -20,7 +20,11 @@ export async function scrape(url) {
   const variants = data?.product?.variants ?? [];
   if (!variants.length) throw new Error('No variants in JRL product JSON');
 
-  const available = variants.find((v) => v.available);
+  // JRL UK has inventory tracking off — `available` is missing/null on
+  // every variant. Treat "no available field" as available; only mark OOS
+  // when API explicitly says available: false.
+  const isAvail = (v) => v.available !== false;
+  const available = variants.find(isAvail);
   const v = available ?? variants[0];
   const price = parsePrice(v.price);
   if (price == null) throw new Error('Could not parse JRL variant price');

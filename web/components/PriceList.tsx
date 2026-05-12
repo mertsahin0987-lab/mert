@@ -1,5 +1,6 @@
 import type { RetailerPrice } from '@/lib/data';
 import { affiliateUrl } from '@/lib/affiliate';
+import { exVat } from '@/lib/vat';
 
 export function PriceList({ prices }: { prices: RetailerPrice[] }) {
   if (!prices.length) {
@@ -47,6 +48,7 @@ export function PriceList({ prices }: { prices: RetailerPrice[] }) {
                 <div className="text-2xl font-bold text-ink">
                   £{p.price.toFixed(2)}
                 </div>
+                <div className="text-xs text-dim mt-0.5">£{exVat(p.price).toFixed(2)} ex VAT</div>
               </div>
               {p.url && (
                 <span className="text-sm font-semibold text-ink group-hover:text-accent group-hover:translate-x-1 transition-all">

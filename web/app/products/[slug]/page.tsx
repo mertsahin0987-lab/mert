@@ -11,6 +11,7 @@ import {
   slugify,
 } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
+import { exVat } from '@/lib/vat';
 
 export const revalidate = 60;
 
@@ -79,8 +80,11 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
               {product.name}
             </h1>
             {prices.length > 0 && (
-              <div className="text-2xl font-bold text-ink mb-4">
-                From <span className="text-accent">£{cheapest.toFixed(2)}</span>
+              <div className="mb-4">
+                <div className="text-2xl font-bold text-ink">
+                  From <span className="text-accent">£{cheapest.toFixed(2)}</span>
+                </div>
+                <div className="text-sm text-dim mt-1">£{exVat(cheapest).toFixed(2)} ex VAT</div>
               </div>
             )}
 

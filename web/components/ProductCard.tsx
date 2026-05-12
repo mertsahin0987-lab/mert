@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { Product } from '@/lib/data';
 import { BellButton } from './BellButton';
+import { exVat } from '@/lib/vat';
 
 export function ProductCard({
   product,
@@ -54,6 +55,7 @@ export function ProductCard({
       ) : (
         <div className="text-[15px] font-semibold text-ink">£{product.base_price.toFixed(2)}</div>
       )}
+      <div className="text-[11px] text-dim mt-0.5">£{exVat(product.base_price).toFixed(2)} ex VAT</div>
     </Link>
   );
 }

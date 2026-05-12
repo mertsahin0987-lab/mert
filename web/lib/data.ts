@@ -21,6 +21,7 @@ export type Product = {
   description: string | null;
   is_new: boolean;
   trending: boolean;
+  in_stock: boolean;     // true if ANY retailer reports it in stock (or no data yet)
 };
 
 export type RetailerPrice = {
@@ -47,7 +48,7 @@ function toBrand(b: any): Brand {
   return { id: b.id, name: b.name, slug: slugify(b.name) };
 }
 
-function toProduct(p: any, brandName: string): Product {
+function toProduct(p: any, brandName: string, inStock: boolean = true): Product {
   return {
     id: p.id,
     name: p.name,
@@ -62,6 +63,7 @@ function toProduct(p: any, brandName: string): Product {
     description: p.description,
     is_new: p.is_new,
     trending: p.trending,
+    in_stock: inStock,
   };
 }
 
@@ -89,16 +91,37 @@ async function getBrandNameMap(): Promise<Map<string, string>> {
 }
 
 export async function getAllProducts(): Promise<Product[]> {
-  const [productsRes, brandMap] = await Promise.all([
+  const [productsRes, brandMap, stockMap] = await Promise.all([
     supabase
       .from('products')
       .select('id, name, brand_id, category, image_key, image_url, base_price, compare_at_price, description, is_new, trending')
       .order('id'),
     getBrandNameMap(),
+    getProductStockMap(),
   ]);
   return (productsRes.data ?? []).map((p: any) =>
-    toProduct(p, brandMap.get(p.brand_id) ?? p.brand_id)
+    toProduct(
+      p,
+      brandMap.get(p.brand_id) ?? p.brand_id,
+      // If product has no price rows yet, default to in-stock so it doesn't
+      // hide. Only mark OOS if every retailer explicitly reports in_stock:false.
+      stockMap.get(p.id) ?? true,
+    )
   );
+}
+
+/**
+ * Returns a map of product_id → in_stock (true if at least one retailer has it).
+ * Used by getAllProducts so each Product carries its aggregate stock state.
+ */
+async function getProductStockMap(): Promise<Map<string, boolean>> {
+  const { data } = await supabase.from('prices').select('product_id, in_stock');
+  const map = new Map<string, boolean>();
+  for (const row of data ?? []) {
+    if (map.get(row.product_id) === true) continue; // already known in-stock
+    map.set(row.product_id, row.in_stock || (map.get(row.product_id) ?? false));
+  }
+  return map;
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {

@@ -12,6 +12,8 @@ import {
 } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
 import { exVat } from '@/lib/vat';
+import { getProductImages } from '@/lib/product-images';
+import { ProductGallery } from '@/components/ProductGallery';
 
 export const revalidate = 60;
 
@@ -57,24 +59,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         </nav>
 
         <div className="grid lg:grid-cols-2 gap-12">
-          {/* Image */}
-          <div className="aspect-square overflow-hidden relative">
-            {(product.image_url || product.image_key) ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={product.image_url ?? `/products/${product.image_key}.png`}
-                alt={product.name}
-                className={`w-full h-full object-contain ${!product.in_stock ? 'grayscale opacity-60' : ''}`}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-dim">No image</div>
-            )}
-            {!product.in_stock && (
-              <div className="absolute top-3 left-3 bg-ink/85 text-white text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded backdrop-blur-sm">
-                Out of stock
-              </div>
-            )}
-          </div>
+          {/* Image gallery — multi-angle, arrows + thumbnails */}
+          <ProductGallery
+            images={product.image_url ? [product.image_url] : getProductImages(product.image_key)}
+            alt={product.name}
+            oos={!product.in_stock}
+          />
 
           {/* Info + price comparison */}
           <div>

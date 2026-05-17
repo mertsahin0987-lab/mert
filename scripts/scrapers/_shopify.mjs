@@ -14,30 +14,44 @@
  * DISABLED, in which case `variant.available` is missing or null. We treat
  * "missing available field" the same as "yes, it's buyable" — only mark
  * a product OOS when the API explicitly says `available: false`.
+ *
+ * Price source: we prefer the storefront-rendered `og:price:amount` meta
+ * over the variant JSON's base price. Some UK stores (JRL UK is the
+ * confirmed example) use Shopify Markets / price-list overrides so the
+ * variant JSON shows £250 while the customer actually pays £300 at
+ * checkout. The meta tag reflects the rendered, customer-facing price.
  */
 
-import { fetchHtml, parsePrice } from './_lib.mjs';
+import { fetchHtml, parsePrice, parseStorefrontPriceMeta } from './_lib.mjs';
 
 export async function shopifyScrape(url) {
   const u = new URL(url);
   const jsonUrl = u.origin + u.pathname.replace(/\/?$/, '') + '.json';
 
-  const text = await fetchHtml(jsonUrl);
-  const data = JSON.parse(text);
+  // Fetch variant JSON and the storefront HTML in parallel. JSON gives us
+  // reliable stock + variant fallback price; HTML gives us the displayed
+  // price (when it differs from the variant base, which happens on stores
+  // using Shopify Markets / price-list overrides).
+  const [jsonText, html] = await Promise.all([
+    fetchHtml(jsonUrl),
+    fetchHtml(url).catch(() => null),
+  ]);
+
+  const data = JSON.parse(jsonText);
   const variants = data?.product?.variants ?? [];
   if (!variants.length) {
     throw new Error(`No variants in Shopify product JSON at ${jsonUrl}`);
   }
 
-  // Some stores omit the `available` field entirely → treat as available.
-  // Only treat as OOS when ALL variants explicitly say available: false.
   const isVariantAvailable = (v) => v.available !== false;
-
   const available = variants.find(isVariantAvailable);
   const v = available ?? variants[0];
-  const price = parsePrice(v.price);
+
+  const variantPrice = parsePrice(v.price);
+  const storefrontPrice = parseStorefrontPriceMeta(html);
+  const price = storefrontPrice ?? variantPrice;
   if (price == null) {
-    throw new Error('Could not parse Shopify variant price');
+    throw new Error('Could not parse Shopify price (variant JSON + storefront meta both empty)');
   }
 
   return { price, inStock: !!available };

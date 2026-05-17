@@ -96,6 +96,26 @@ export function parsePrice(text) {
 }
 
 /**
+ * Read the storefront-displayed price from a Shopify-rendered product page.
+ *
+ * Why this exists: Shopify's variants `.json` endpoint returns the *variant
+ * base* price, which can lag the actual checkout price when a store uses
+ * Shopify Markets, B2B price lists, or theme-level price overrides.
+ * The storefront-rendered page publishes the true displayed price in
+ * `og:price:amount` / `product:price:amount` meta tags — that's what the
+ * customer actually pays.
+ *
+ * Returns the numeric price, or null if no meta tag is found.
+ */
+export function parseStorefrontPriceMeta(html) {
+  if (!html) return null;
+  const m = html.match(
+    /<meta[^>]+(?:property|name)="(?:og|product):price:amount"[^>]+content="([^"]+)"/i
+  );
+  return m ? parsePrice(m[1]) : null;
+}
+
+/**
  * Detect "in stock" / "out of stock" from common phrases.
  * Returns true (in stock) by default — better to assume available than miss a sale.
  */

@@ -7,6 +7,13 @@
       "runtimeArgs": ["-c", "export PATH=/Users/merts/.nvm/versions/node/v24.14.1/bin:$PATH && cd /Users/merts/Documents/ClipperHouse/ClipperHouse && npx expo start --web"],
       "port": 8081,
       "autoPort": true
+    },
+    {
+      "name": "clipprr-web",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "export PATH=/Users/merts/.nvm/versions/node/v24.14.1/bin:$PATH && cd /Users/merts/Documents/ClipperHouse/ClipperHouse/web && npm run dev"],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }

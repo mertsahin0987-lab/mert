@@ -1,32 +1,16 @@
 /**
- * JRL USA scraper.
- * jrlusa.com runs on Shopify — append `.json` to any /products/<handle>
- * URL to get clean structured data (price + availability + variants).
+ * JRL scraper.
+ * Both jrlusa.com and jrluk.co.uk run on Shopify; JRL UK uses Shopify
+ * Markets price-list overrides, which means the variant `.json` base price
+ * lags the actual checkout price. The shared `shopifyScrape` helper handles
+ * this by preferring the storefront-displayed `og:price:amount`.
  */
 
-import { fetchHtml, parsePrice } from './_lib.mjs';
+import { shopifyScrape } from './_shopify.mjs';
 
 export const retailerId = 'jrl-direct';
 // Supports both jrlusa.com (USD) and jrluk.co.uk (GBP — preferred for UK users)
 export const matchesDomain = (url) =>
   /(^|\.)jrlusa\.com$|(^|\.)jrluk\.co\.uk$/i.test(new URL(url).hostname);
 
-export async function scrape(url) {
-  const u = new URL(url);
-  const jsonUrl = u.origin + u.pathname.replace(/\/?$/, '') + '.json';
-
-  const text = await fetchHtml(jsonUrl);
-  const data = JSON.parse(text);
-  const variants = data?.product?.variants ?? [];
-  if (!variants.length) throw new Error('No variants in JRL product JSON');
-
-  // JRL UK has inventory tracking off — `available` is missing/null on
-  // every variant. Treat "no available field" as available; only mark OOS
-  // when API explicitly says available: false.
-  const isAvail = (v) => v.available !== false;
-  const available = variants.find(isAvail);
-  const v = available ?? variants[0];
-  const price = parsePrice(v.price);
-  if (price == null) throw new Error('Could not parse JRL variant price');
-  return { price, inStock: !!available };
-}
+export const scrape = shopifyScrape;

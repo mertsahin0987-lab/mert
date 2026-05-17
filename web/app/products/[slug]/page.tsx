@@ -44,7 +44,17 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   ]);
   const related = sameBrand.filter((p) => p.id !== product.id).slice(0, 4);
   const isTracking = alerted.has(product.id);
-  const cheapest = prices.length > 0 ? Math.min(...prices.map((p) => p.price)) : product.base_price;
+  // Prefer cheapest in-stock retailer — out-of-stock prices aren't buyable, so
+  // showing them as "From £X" misleads the customer (e.g. Coolblades £250 OOS
+  // beating JRL in-stock £300). Fall back to any price only if nothing's in stock.
+  const inStockPrices = prices.filter((p) => p.in_stock).map((p) => p.price);
+  const allPrices = prices.map((p) => p.price);
+  const cheapest =
+    inStockPrices.length > 0
+      ? Math.min(...inStockPrices)
+      : allPrices.length > 0
+        ? Math.min(...allPrices)
+        : product.base_price;
 
   return (
     <article>

@@ -11,13 +11,18 @@ export function PriceList({ prices }: { prices: RetailerPrice[] }) {
     );
   }
 
-  const sorted = [...prices].sort((a, b) => a.price - b.price);
-  const cheapest = sorted[0];
+  // Sort: in-stock cheapest first, then out-of-stock cheapest. An OOS row is
+  // never "Best price" — the customer can't actually buy it at that price.
+  const sorted = [...prices].sort((a, b) => {
+    if (a.in_stock !== b.in_stock) return a.in_stock ? -1 : 1;
+    return a.price - b.price;
+  });
+  const cheapestInStock = sorted.find((p) => p.in_stock);
 
   return (
     <div className="space-y-2">
       {sorted.map((p) => {
-        const isCheapest = p.retailer_id === cheapest.retailer_id;
+        const isCheapest = cheapestInStock != null && p.retailer_id === cheapestInStock.retailer_id;
         return (
           <a
             key={p.retailer_id}

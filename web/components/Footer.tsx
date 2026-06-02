@@ -25,6 +25,8 @@ export function Footer() {
           <div>
             <div className="text-xs font-semibold uppercase tracking-widest text-dim mb-4">Clipprr</div>
             <ul className="space-y-2 text-sm text-muted">
+              <li><Link href="/about" className="hover:text-ink">About</Link></li>
+              <li><Link href="/contact" className="hover:text-ink">Contact</Link></li>
               <li><a href="mailto:info@clipprr.co.uk" className="hover:text-ink">info@clipprr.co.uk</a></li>
               <li><Link href="/privacy" className="hover:text-ink">Privacy</Link></li>
               <li><Link href="/terms" className="hover:text-ink">Terms</Link></li>

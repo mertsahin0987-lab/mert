@@ -101,6 +101,39 @@ export async function browserFetch(url, { timeoutMs = 90000 } = {}) {
   }
 }
 
+/**
+ * Fetch a URL through the browser context as bytes. Carries the same session
+ * cookies as `browserFetch`, so Cloudflare-protected image CDNs (e.g. the
+ * Chris & Sons /media/catalog/product/*.jpg URLs) will respond instead of
+ * returning a 403 to a plain `fetch()`.
+ *
+ * Cloudflare's bot check sometimes blocks `context.request.get()` because the
+ * request shape is too API-like (no Referer, no Sec-Fetch-Site, etc.). Routing
+ * through a real `page.goto()` returns the binary response — that's the same
+ * codepath a browser actually uses when navigating to an image URL.
+ */
+export async function browserFetchBytes(url, { referer = null } = {}) {
+  const ctx = await getContext();
+  const page = await ctx.newPage();
+  try {
+    let captured = null;
+    page.on('response', async (resp) => {
+      if (resp.url() === url && resp.ok()) {
+        try { captured = await resp.body(); } catch {}
+      }
+    });
+    const opts = { timeout: 30000, waitUntil: 'load' };
+    if (referer) opts.referer = referer;
+    const nav = await page.goto(url, opts);
+    if (!nav?.ok()) throw new Error(`HTTP ${nav?.status() ?? 'no-response'}`);
+    if (captured) return Buffer.from(captured);
+    // Fallback: use the navigation response body directly
+    return Buffer.from(await nav.body());
+  } finally {
+    await page.close();
+  }
+}
+
 export async function closeBrowser() {
   if (context) { await context.close(); context = null; }
   if (browser) { await browser.close(); browser = null; }

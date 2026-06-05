@@ -55,6 +55,35 @@ const SHOPIFY_RETAILERS = new Set([
   'jrl-direct',
 ]);
 
+/**
+ * Amazon UK: load via Playwright and pull image URLs out of the page.
+ * Amazon embeds a JS object called colorImages that holds every gallery
+ * angle. We grab the page HTML, regex the JSON out, and return the high-res
+ * URLs from m.media-amazon.com (a public CDN — no Cloudflare in front).
+ */
+async function amazonImages(productUrl) {
+  const html = await browserFetch(productUrl);
+
+  // Hero image — og:image meta tag is the most reliable single image source.
+  const ogMatch = html.match(/property=["']og:image["']\s+content=["']([^"']+)/i);
+  const hero = ogMatch ? ogMatch[1] : null;
+
+  // Gallery — Amazon stuffs all the angles into a JS object called
+  // colorImages.initial. Each entry has hiRes / large / mainUrl URLs.
+  // Regex the JSON-ish block; full parse is brittle and version-specific.
+  const urls = new Set();
+  if (hero) urls.add(hero);
+  const reHi = /"hiRes":"(https?:[^"]+)"/g;
+  const reLg = /"large":"(https?:[^"]+)"/g;
+  let m;
+  while ((m = reHi.exec(html))) urls.add(m[1].replace(/\\u002F/g, '/'));
+  // Fall back to "large" if no hiRes (some listings only have large)
+  if (urls.size <= 1) {
+    while ((m = reLg.exec(html))) urls.add(m[1].replace(/\\u002F/g, '/'));
+  }
+  return [...urls];
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Image extraction by retailer
 
@@ -175,11 +204,13 @@ async function downloadImage(url, destPath, useBrowser = false, referer = null) 
 }
 
 function pickSourceUrl(prices) {
-  // Prefer Shopify (fast), then C&S (Playwright), skip everything else.
+  // Prefer Shopify (fast), then C&S (Playwright), then Amazon (Playwright).
   const shopify = prices.find((p) => SHOPIFY_RETAILERS.has(p.retailer_id));
   if (shopify) return { url: shopify.url, source: 'shopify', retailer: shopify.retailer_id };
   const cs = prices.find((p) => p.retailer_id === 'chris-sons');
   if (cs) return { url: cs.url, source: 'chris-sons', retailer: 'chris-sons' };
+  const amzn = prices.find((p) => p.retailer_id === 'amazon-uk');
+  if (amzn) return { url: amzn.url, source: 'amazon', retailer: 'amazon-uk' };
   return null;
 }
 
@@ -220,9 +251,10 @@ async function main() {
     console.log(`  → #${p.id} ${p.name}`);
     console.log(`    via ${source.retailer}`);
     try {
-      const urls = source.source === 'shopify'
-        ? await shopifyImages(source.url)
-        : await chrisAndSonsImages(source.url);
+      const urls =
+        source.source === 'shopify' ? await shopifyImages(source.url) :
+        source.source === 'amazon' ? await amazonImages(source.url) :
+        await chrisAndSonsImages(source.url);
       if (!urls.length) throw new Error('no images found');
 
       if (dryRun) {

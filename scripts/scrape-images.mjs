@@ -56,6 +56,39 @@ const SHOPIFY_RETAILERS = new Set([
 ]);
 
 /**
+ * Coolblades (BigCommerce): public store, no Cloudflare. Images live at
+ * predictable `/stencil/<size>/products/<productId>/<imageId>/<filename>`
+ * URLs — we regex out every unique high-res variant from the product page.
+ */
+async function coolbladesImages(productUrl) {
+  // Coolblades 404s plain fetch (some bot-detection rule on the BigCommerce
+  // edge), but accepts the same URL through a real browser. Route through
+  // Playwright to dodge it.
+  const html = await browserFetch(productUrl);
+
+  // Coolblades' HTML references images as /stencil/<size>/products/<X>/<Y>/<f>
+  // but those URLs only work inside the browser session. The actual public CDN
+  // path is cdn11.bigcommerce.com/s-<storeHash>/images/stencil/<size>/...
+  // Extract the store hash from the page (it's in preload tags) then rewrite.
+  const storeHash = html.match(/cdn11\.bigcommerce\.com\/s-([a-z0-9]+)/i)?.[1];
+  if (!storeHash) throw new Error('Could not find BigCommerce store hash');
+
+  const seen = new Set();
+  const urls = [];
+  const re = /\/stencil\/1280x1280\/products\/[^"'\s]+/g;
+  let m;
+  while ((m = re.exec(html))) {
+    const path = m[0];
+    // Dedupe by `productId/imageId` — same image at any resolution.
+    const key = path.match(/products\/(\d+)\/(\d+)/)?.[0] ?? path;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    urls.push(`https://cdn11.bigcommerce.com/s-${storeHash}/images${path}`);
+  }
+  return urls;
+}
+
+/**
  * Amazon UK: load via Playwright and pull image URLs out of the page.
  * Amazon embeds a JS object called colorImages that holds every gallery
  * angle. We grab the page HTML, regex the JSON out, and return the high-res
@@ -204,9 +237,13 @@ async function downloadImage(url, destPath, useBrowser = false, referer = null) 
 }
 
 function pickSourceUrl(prices) {
-  // Prefer Shopify (fast), then C&S (Playwright), then Amazon (Playwright).
+  // Try the cheap, reliable sources first: Shopify JSON and Coolblades (both
+  // plain HTTP, no Playwright). Then Chris & Sons (Playwright, Cloudflare),
+  // then Amazon (Playwright, bot-walled).
   const shopify = prices.find((p) => SHOPIFY_RETAILERS.has(p.retailer_id));
   if (shopify) return { url: shopify.url, source: 'shopify', retailer: shopify.retailer_id };
+  const cb = prices.find((p) => p.retailer_id === 'coolblades');
+  if (cb) return { url: cb.url, source: 'coolblades', retailer: 'coolblades' };
   const cs = prices.find((p) => p.retailer_id === 'chris-sons');
   if (cs) return { url: cs.url, source: 'chris-sons', retailer: 'chris-sons' };
   const amzn = prices.find((p) => p.retailer_id === 'amazon-uk');
@@ -253,6 +290,7 @@ async function main() {
     try {
       const urls =
         source.source === 'shopify' ? await shopifyImages(source.url) :
+        source.source === 'coolblades' ? await coolbladesImages(source.url) :
         source.source === 'amazon' ? await amazonImages(source.url) :
         await chrisAndSonsImages(source.url);
       if (!urls.length) throw new Error('no images found');

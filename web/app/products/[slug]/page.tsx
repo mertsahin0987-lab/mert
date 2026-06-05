@@ -8,14 +8,12 @@ import {
   getProductBySlug,
   getProductPrices,
   getProductsByBrandId,
-  getPriceHistory,
   slugify,
 } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
 import { exVat } from '@/lib/vat';
 import { getProductImages } from '@/lib/product-images';
 import { ProductGallery } from '@/components/ProductGallery';
-import { PriceHistoryChart } from '@/components/PriceHistoryChart';
 
 export const revalidate = 60;
 
@@ -39,11 +37,10 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const [prices, sameBrand, alerted, history] = await Promise.all([
+  const [prices, sameBrand, alerted] = await Promise.all([
     getProductPrices(product.id),
     getProductsByBrandId(product.brand_id),
     getUserAlertedProductIds(),
-    getPriceHistory(product.id),
   ]);
   const related = sameBrand.filter((p) => p.id !== product.id).slice(0, 4);
   const isTracking = alerted.has(product.id);
@@ -114,10 +111,6 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <PriceList prices={prices} />
           </div>
         </div>
-
-        {/* Price history — daily snapshots over time, lets the user judge if
-            the current price is genuinely good or just a number on a card */}
-        <PriceHistoryChart history={history} />
 
         {/* Related */}
         {related.length > 0 && (

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase-server';
+import { MobileMenu } from './MobileMenu';
 
 export async function Header() {
   // Server-side auth check — shows "Account" if logged in, "Sign in" otherwise
@@ -8,10 +9,13 @@ export async function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-paper border-b border-line">
-      <div className="mx-auto max-w-6xl px-6 h-16 flex items-center justify-between gap-8">
-        <Link href="/" className="text-xl font-extrabold tracking-tightest text-ink">
-          Clipprr.
-        </Link>
+      <div className="mx-auto max-w-6xl px-4 md:px-6 h-16 flex items-center justify-between gap-4 md:gap-8">
+        <div className="flex items-center gap-2">
+          <MobileMenu isLoggedIn={!!user} />
+          <Link href="/" className="text-xl font-extrabold tracking-tightest text-ink">
+            Clipprr.
+          </Link>
+        </div>
 
         {/* Primary nav — Sale gets bright red so it pops */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-muted">

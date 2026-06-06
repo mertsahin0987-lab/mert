@@ -68,7 +68,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           <span className="text-ink truncate max-w-md">{product.name}</span>
         </nav>
 
-        <div className="grid lg:grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 min-w-0">
           {/* Image gallery — multi-angle, arrows + thumbnails */}
           <ProductGallery
             images={product.image_url ? [product.image_url] : getProductImages(product.image_key)}

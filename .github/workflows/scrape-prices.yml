@@ -1,13 +1,21 @@
-# Scrapes retailer prices and updates Supabase.
+# Daily Clipprr data refresh.
 #
-# Runs every day at 06:00 UTC (07:00 BST). Manually triggerable from the
-# Actions tab via "workflow_dispatch".
+# Runs three things in order:
+#   1. scrape-prices  — visit every retailer URL, write fresh prices
+#                        + price_history snapshots to Supabase
+#   2. recompute-base-prices  — rebuild each product's "From £X" headline
+#                                from the new in-stock prices
+#   3. scrape-news    — pull editorial articles from configured barber
+#                        blogs (Atom feeds) into news_articles
+#
+# Runs every day at 06:00 UTC (07:00 BST). Manually triggerable from
+# the Actions tab via "workflow_dispatch".
 #
 # Required GitHub repo secrets (Settings → Secrets and variables → Actions):
 #   - SUPABASE_URL                  — your project URL
 #   - SUPABASE_SERVICE_ROLE_KEY     — secret key (NEVER commit this)
 
-name: Scrape prices
+name: Daily data refresh
 
 on:
   schedule:
@@ -47,7 +55,7 @@ jobs:
         # Required for the Chris & Sons scraper (Cloudflare-protected).
         # Cached automatically by setup-node when package-lock.json is unchanged.
         run: npx playwright install --with-deps chromium
-      - name: Run scraper
+      - name: Scrape prices
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
@@ -56,3 +64,22 @@ jobs:
           if [ -n "${{ inputs.retailer }}" ]; then ARGS="$ARGS --retailer=${{ inputs.retailer }}"; fi
           if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
           node scripts/scrape-prices.mjs $ARGS
+
+      - name: Recompute base prices
+        # Skipped on dry run — there'd be no new prices to recompute from.
+        if: ${{ inputs.dry_run != true }}
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/recompute-base-prices.mjs
+
+      - name: Scrape news articles
+        # Always runs even on dry-run-prices, since the news scraper is
+        # cheap and the editorial feed is independent of price scraping.
+        # Failure here doesn't fail the whole workflow — articles are a
+        # nice-to-have, not load-bearing for the site to work.
+        continue-on-error: true
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/scrape-news.mjs

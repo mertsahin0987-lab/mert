@@ -7,7 +7,13 @@ import { createBrowserSupabase } from '@/lib/supabase-browser';
 
 type Mode = 'choose' | 'email-signup' | 'email-login';
 
-export function SignInChooser({ defaultMode = 'choose' }: { defaultMode?: Mode }) {
+export function SignInChooser({
+  defaultMode = 'choose',
+  next,
+}: {
+  defaultMode?: Mode;
+  next?: string | null;
+}) {
   const [mode, setMode] = useState<Mode>(defaultMode);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -16,9 +22,13 @@ export function SignInChooser({ defaultMode = 'choose' }: { defaultMode?: Mode }
   async function handleOAuth(provider: 'google') {
     setError(null);
     const supabase = createBrowserSupabase();
+    // Pass `next` through the OAuth callback so we end up back where we
+    // were sent from (e.g. /admin) instead of the default /account.
+    const callbackUrl = new URL(`${window.location.origin}/auth/callback`);
+    if (next) callbackUrl.searchParams.set('next', next);
     const { error } = await supabase.auth.signInWithOAuth({
       provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: callbackUrl.toString() },
     });
     if (error) setError(error.message);
   }
@@ -93,6 +103,7 @@ export function SignInChooser({ defaultMode = 'choose' }: { defaultMode?: Mode }
 
       {isEmailForm && (
         <form action={handleEmailSubmit} className="space-y-4">
+          {next && <input type="hidden" name="next" value={next} />}
           <div>
             <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wider text-dim mb-2">
               Email

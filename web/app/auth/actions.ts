@@ -13,9 +13,25 @@ import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 import { createServerSupabase } from '@/lib/supabase-server';
 
+/**
+ * Where to send the user after a successful sign-in. Honours a `next`
+ * form field if the caller passed one (e.g. middleware bouncing the user
+ * to /login from a protected route), falling back to /account.
+ *
+ * Strict whitelist: only same-origin paths starting with '/' are allowed,
+ * never a full URL or a path beginning with '//' (which browsers treat as
+ * a protocol-relative redirect to another origin).
+ */
+function safeNextPath(next: unknown): string {
+  if (typeof next !== 'string' || !next.startsWith('/')) return '/account';
+  if (next.startsWith('//')) return '/account';
+  return next;
+}
+
 export async function signIn(formData: FormData) {
   const email = String(formData.get('email') ?? '').trim();
   const password = String(formData.get('password') ?? '');
+  const next = safeNextPath(formData.get('next'));
 
   if (!email || !password) {
     return { error: 'Email and password are required.' };
@@ -29,7 +45,7 @@ export async function signIn(formData: FormData) {
   }
 
   revalidatePath('/', 'layout');
-  redirect('/account');
+  redirect(next);
 }
 
 export async function signUp(formData: FormData) {

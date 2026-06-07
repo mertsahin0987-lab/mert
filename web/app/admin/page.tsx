@@ -1,4 +1,6 @@
+import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
+import { createHash } from 'crypto';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { isAdminEmail, adminSupabase } from '@/lib/admin';
 
@@ -44,6 +46,27 @@ export default async function AdminPage() {
     );
   }
 
+  // Audit log: record this access before doing anything else. Failures don't
+  // block the page, but they DO print to the server log so we'd notice if
+  // the audit table ever stopped accepting writes.
+  try {
+    const h = await headers();
+    const ip = h.get('x-forwarded-for')?.split(',')[0]?.trim()
+      ?? h.get('x-real-ip')
+      ?? 'unknown';
+    const salt = new Date().toISOString().slice(0, 10);
+    const ipHash = createHash('sha256').update(`${ip}:${salt}`).digest('hex').slice(0, 16);
+    await admin.from('admin_access_log').insert({
+      email: user.email,
+      path: '/admin',
+      outcome: 'allowed',
+      ip_hash: ipHash,
+      user_agent: h.get('user-agent')?.slice(0, 500),
+    });
+  } catch (e) {
+    console.error('[admin] audit log write failed', e);
+  }
+
   // Fetch everything in parallel
   const [
     usersRes,
@@ -53,6 +76,7 @@ export default async function AdminPage() {
     articlesCountRes,
     productsRes,
     retailersRes,
+    accessLogRes,
   ] = await Promise.all([
     admin.auth.admin.listUsers({ perPage: 100 }),
     admin
@@ -65,6 +89,11 @@ export default async function AdminPage() {
     admin.from('news_articles').select('id', { count: 'exact', head: true }),
     admin.from('products').select('id, name'),
     admin.from('retailers').select('id, name'),
+    admin
+      .from('admin_access_log')
+      .select('email, outcome, ip_hash, occurred_at')
+      .order('occurred_at', { ascending: false })
+      .limit(10),
   ]);
 
   const users = usersRes.data?.users ?? [];
@@ -207,10 +236,27 @@ export default async function AdminPage() {
         )}
       </Section>
 
+      {/* Recent admin access — security panel */}
+      <Section title="Recent admin access · last 10">
+        {!accessLogRes.data || accessLogRes.data.length === 0 ? (
+          <Empty>No audit log entries yet. (Run migration 006 if this stays empty.)</Empty>
+        ) : (
+          <Table
+            head={['When', 'Email', 'Outcome', 'IP hash']}
+            rows={accessLogRes.data.map((l: any) => [
+              fmtDateTime(l.occurred_at),
+              l.email ?? '—',
+              l.outcome,
+              l.ip_hash ?? '—',
+            ])}
+          />
+        )}
+      </Section>
+
       <p className="text-xs text-dim mt-12">
-        This page is restricted to{' '}
-        <code className="text-ink">{user.email}</code> and never indexed by
-        search engines. Sign out to drop access.
+        Locked to <code className="text-ink">{user.email}</code>. Sessions
+        older than 60 minutes are forced to re-authenticate. Every page hit is
+        logged above. Never indexed by search engines. Sign out to drop access.
       </p>
     </article>
   );
@@ -311,4 +357,11 @@ function fmtDate(iso: string | null | undefined): string {
   const d = new Date(iso);
   const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   return `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function fmtDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${fmtDate(iso)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }

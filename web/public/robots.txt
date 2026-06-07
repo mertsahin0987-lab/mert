@@ -3,6 +3,8 @@
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /api/
 
 # Block AI scrapers — these aren't search engines, they train models on
 # the work we put into this site without sending traffic back.

@@ -1,17 +1,19 @@
 import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase-server';
+import { isAdminEmail } from '@/lib/admin';
 import { MobileMenu } from './MobileMenu';
 
 export async function Header() {
   // Server-side auth check — shows "Account" if logged in, "Sign in" otherwise
   const supabase = await createServerSupabase();
   const { data: { user } } = await supabase.auth.getUser();
+  const isAdmin = isAdminEmail(user?.email);
 
   return (
     <header className="sticky top-0 z-50 bg-paper border-b border-line">
       <div className="mx-auto max-w-6xl px-4 md:px-6 h-16 flex items-center justify-between gap-4 md:gap-8">
         <div className="flex items-center gap-2">
-          <MobileMenu isLoggedIn={!!user} />
+          <MobileMenu isLoggedIn={!!user} isAdmin={isAdmin} />
           <Link href="/" className="text-xl font-extrabold tracking-tightest text-ink">
             Clipprr.
           </Link>
@@ -44,6 +46,21 @@ export async function Header() {
 
           {user ? (
             <>
+              {/* Admin link — server-side check, renders ONLY for the
+                  allowlisted admin email. Every other signed-in user
+                  doesn't even see the markup, let alone the route. */}
+              {isAdmin && (
+                <Link
+                  href="/admin"
+                  className="hidden md:inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-ink text-paper px-2.5 py-1 rounded hover:bg-accent transition-colors"
+                  aria-label="Admin dashboard"
+                >
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                  </svg>
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/account/alerts"
                 className="text-ink hover:text-accent transition-colors"

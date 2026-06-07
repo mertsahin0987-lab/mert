@@ -10,7 +10,13 @@ import { usePathname } from 'next/navigation';
  * viewport can still fit the logo + search + auth button. Tap the hamburger
  * to open a full-screen overlay, tap any link or the close button to close.
  */
-export function MobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
+export function MobileMenu({
+  isLoggedIn,
+  isAdmin = false,
+}: {
+  isLoggedIn: boolean;
+  isAdmin?: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
 
@@ -79,6 +85,15 @@ export function MobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
               <MobileLink href="/news">News</MobileLink>
               <MobileLink href="/products">All products</MobileLink>
             </ul>
+
+            {isAdmin && (
+              <div className="mt-10 pt-6 border-t border-line">
+                <div className="text-xs font-bold uppercase tracking-widest text-dim mb-4">Admin</div>
+                <ul className="space-y-1 text-lg font-semibold">
+                  <MobileLink href="/admin">Dashboard</MobileLink>
+                </ul>
+              </div>
+            )}
 
             <div className="mt-10 pt-6 border-t border-line">
               <div className="text-xs font-bold uppercase tracking-widest text-dim mb-4">Account</div>

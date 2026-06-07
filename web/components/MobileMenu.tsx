@@ -76,6 +76,7 @@ export function MobileMenu({ isLoggedIn }: { isLoggedIn: boolean }) {
               <MobileLink href="/categories/shavers">Shavers</MobileLink>
               <MobileLink href="/categories/sets">Sets</MobileLink>
               <MobileLink href="/sale" accent>Sale</MobileLink>
+              <MobileLink href="/news">News</MobileLink>
               <MobileLink href="/products">All products</MobileLink>
             </ul>
 

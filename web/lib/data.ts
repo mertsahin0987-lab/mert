@@ -191,6 +191,168 @@ export async function getTrendingProducts(limit: number = 8): Promise<Product[]>
   return eligible.slice(0, limit);
 }
 
+// ---------------------------------------------------------------------------
+// News feed — auto-generated from price_history. Surfaces three kinds of
+// events the user actually cares about: price drops, restocks, and brand-new
+// products in the catalogue. Sole Supplier's sticky daily-return loop is
+// built on top of exactly this kind of feed; the difference is we don't
+// need an editorial team because the scraper already collects the data.
+// ---------------------------------------------------------------------------
+
+export type NewsEvent =
+  | {
+      type: 'price-drop';
+      product_id: string;
+      product_slug: string;
+      product_name: string;
+      brand_name: string;
+      retailer_id: string;
+      retailer_name: string;
+      oldPrice: number;
+      newPrice: number;
+      savings: number;
+      when: string;
+    }
+  | {
+      type: 'restock';
+      product_id: string;
+      product_slug: string;
+      product_name: string;
+      brand_name: string;
+      retailer_id: string;
+      retailer_name: string;
+      price: number;
+      when: string;
+    }
+  | {
+      type: 'new-product';
+      product_id: string;
+      product_slug: string;
+      product_name: string;
+      brand_name: string;
+      when: string;
+    };
+
+/**
+ * Builds the chronological news feed by replaying the last N days of price
+ * history. Returns events sorted newest first.
+ *
+ * A price drop counts when the new price is at least 5% AND at least £3 lower
+ * than the previous snapshot — tighter thresholds would surface scraper jitter
+ * (£0.50 round-trip changes happen constantly on Amazon marketplace).
+ *
+ * A restock is the moment in_stock flips from false to true. We only emit one
+ * restock per (product, retailer) per scan, even if it flapped multiple times.
+ */
+export async function getNewsItems(days: number = 14, limit: number = 30): Promise<NewsEvent[]> {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
+
+  const [historyRes, productsRes, retailersRes] = await Promise.all([
+    supabase
+      .from('price_history')
+      .select('product_id, retailer_id, price, in_stock, seen_at')
+      .gte('seen_at', since)
+      .order('seen_at', { ascending: true }),
+    supabase
+      .from('products')
+      .select('id, name, brand_id, created_at')
+      .gte('created_at', since),
+    supabase.from('retailers').select('id, name'),
+  ]);
+
+  const brandMap = await getBrandNameMap();
+  const retailerMap = new Map<string, string>(
+    (retailersRes.data ?? []).map((r: any) => [r.id, r.name]),
+  );
+  const productsById = new Map<string, any>();
+  // Fetch all products once for name + brand lookup
+  const allProducts = await getAllProducts();
+  for (const p of allProducts) productsById.set(p.id, p);
+
+  const events: NewsEvent[] = [];
+
+  // Group history by (product, retailer) and walk chronologically
+  const groups = new Map<string, any[]>();
+  for (const row of historyRes.data ?? []) {
+    const key = `${row.product_id}|${row.retailer_id}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(row);
+  }
+
+  for (const [key, rows] of groups) {
+    const [productId, retailerId] = key.split('|');
+    const product = productsById.get(productId);
+    if (!product) continue; // product deleted since the snapshot
+    const retailerName = retailerMap.get(retailerId) ?? retailerId;
+
+    let prev: any = null;
+    let restockEmitted = false;
+    let dropEmitted = false;
+    for (const row of rows) {
+      if (prev) {
+        // Restock: previously OOS, now in stock. One per scan window.
+        if (!prev.in_stock && row.in_stock && !restockEmitted) {
+          events.push({
+            type: 'restock',
+            product_id: product.id,
+            product_slug: product.slug,
+            product_name: product.name,
+            brand_name: product.brand_name,
+            retailer_id: retailerId,
+            retailer_name: retailerName,
+            price: Number(row.price),
+            when: row.seen_at,
+          });
+          restockEmitted = true;
+        }
+
+        // Price drop: meaningful only when in stock now (an OOS price is fake).
+        // Need >= 5% AND >= £3 to dodge scraper jitter.
+        if (row.in_stock && row.price < prev.price && !dropEmitted) {
+          const savings = Number(prev.price) - Number(row.price);
+          const pct = savings / Number(prev.price);
+          if (pct >= 0.05 && savings >= 3) {
+            events.push({
+              type: 'price-drop',
+              product_id: product.id,
+              product_slug: product.slug,
+              product_name: product.name,
+              brand_name: product.brand_name,
+              retailer_id: retailerId,
+              retailer_name: retailerName,
+              oldPrice: Number(prev.price),
+              newPrice: Number(row.price),
+              savings,
+              when: row.seen_at,
+            });
+            dropEmitted = true;
+          }
+        }
+      }
+      prev = row;
+    }
+  }
+
+  // New products added in the window
+  for (const p of productsRes.data ?? []) {
+    const product = productsById.get(p.id);
+    if (!product) continue;
+    events.push({
+      type: 'new-product',
+      product_id: product.id,
+      product_slug: product.slug,
+      product_name: product.name,
+      brand_name: product.brand_name,
+      when: p.created_at,
+    });
+  }
+
+  // Newest first, capped at limit
+  return events
+    .sort((a, b) => b.when.localeCompare(a.when))
+    .slice(0, limit);
+}
+
 /**
  * Products sorted by their real release_date if set, falling back to
  * created_at. Anything older than 90 days is dropped — these are *new*

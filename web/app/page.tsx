@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
-import { getAllProducts, getBrands } from '@/lib/data';
+import { getAllProducts, getBrands, getTrendingProducts, getNewReleases } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
 
 // Page becomes dynamic because we read the auth cookie to know which products
@@ -8,13 +8,13 @@ import { getUserAlertedProductIds } from '@/lib/alerts';
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [products, brands, alerted] = await Promise.all([
+  const [products, brands, alerted, trending, newReleases] = await Promise.all([
     getAllProducts(),
     getBrands(),
     getUserAlertedProductIds(),
+    getTrendingProducts(8),
+    getNewReleases(4),
   ]);
-  const trending = products.filter((p) => p.trending).slice(0, 8);
-  const newReleases = products.filter((p) => p.is_new).slice(0, 4);
   const featured = products.slice(0, 8);
 
   return (

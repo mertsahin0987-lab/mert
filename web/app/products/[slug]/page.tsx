@@ -210,7 +210,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <div className="mb-3 text-xs font-bold text-ink uppercase tracking-widest">
               Where to buy
             </div>
-            <PriceList prices={prices} />
+            <PriceList prices={prices} productId={product.id} />
           </div>
         </div>
 

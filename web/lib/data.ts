@@ -141,6 +141,87 @@ export async function getProductsByCategory(category: string): Promise<Product[]
 }
 
 // ---------------------------------------------------------------------------
+// Trending — driven by real retailer-click counts when we have them, falls
+// back to a randomised pick from the catalogue while click data is sparse.
+//
+// ISR caches the rendered home page for 60s, so within any minute every
+// visitor sees the same "random" set; on the next rebuild the set rotates.
+// That's the behaviour we want — fresh enough to keep the home page lively,
+// stable enough that anyone sharing a link gets a coherent screenshot.
+// ---------------------------------------------------------------------------
+
+export async function getTrendingProducts(limit: number = 8): Promise<Product[]> {
+  // Pull last-7-day click counts. If the table doesn't exist yet (migration
+  // not applied) or there's simply no click data, we'll fall through to the
+  // randomised path below — never crash.
+  let clickCounts = new Map<string, number>();
+  try {
+    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await supabase
+      .from('product_clicks')
+      .select('product_id')
+      .gte('clicked_at', since);
+    for (const row of data ?? []) {
+      const k = String(row.product_id);
+      clickCounts.set(k, (clickCounts.get(k) ?? 0) + 1);
+    }
+  } catch {
+    // table missing — ignore
+  }
+
+  const all = await getAllProducts();
+  // Only show products that are presentable + buyable. A "trending" tile
+  // pointing at an out-of-stock item with no image is a bad first impression.
+  const eligible = all.filter((p) => p.in_stock && (p.image_url || p.image_key));
+
+  if (clickCounts.size >= limit) {
+    // We have real engagement data — sort by clicks, break ties at random
+    return eligible
+      .map((p) => ({ p, c: clickCounts.get(p.id) ?? 0, r: Math.random() }))
+      .sort((a, b) => b.c - a.c || b.r - a.r)
+      .slice(0, limit)
+      .map((x) => x.p);
+  }
+
+  // No (or sparse) click data — randomise. Shuffle in place then slice.
+  for (let i = eligible.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
+  }
+  return eligible.slice(0, limit);
+}
+
+/**
+ * Products sorted by their real release_date if set, falling back to
+ * created_at. Anything older than 90 days is dropped — these are *new*
+ * releases, not catalogue history.
+ */
+export async function getNewReleases(limit: number = 4): Promise<Product[]> {
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, name, brand_id, category, image_key, image_url, base_price, compare_at_price, description, is_new, trending, release_date, created_at')
+    .order('release_date', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false });
+
+  if (error || !data) return [];
+
+  const brandMap = await getBrandNameMap();
+  const stockMap = await getProductStockMap();
+  const cutoff = Date.now() - 90 * 24 * 60 * 60 * 1000;
+
+  return data
+    .filter((p: any) => {
+      // Must look complete: image + price + recent enough to be a "new release"
+      if (!p.image_key && !p.image_url) return false;
+      const when = new Date(p.release_date ?? p.created_at).getTime();
+      return when >= cutoff;
+    })
+    .slice(0, limit * 2)
+    .map((p: any) => toProduct(p, brandMap.get(p.brand_id) ?? p.brand_id, stockMap.get(p.id) ?? true))
+    .slice(0, limit);
+}
+
+// ---------------------------------------------------------------------------
 // Prices for a product
 // ---------------------------------------------------------------------------
 

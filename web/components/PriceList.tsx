@@ -1,8 +1,28 @@
 import type { RetailerPrice } from '@/lib/data';
-import { affiliateUrl } from '@/lib/affiliate';
 import { exVat } from '@/lib/vat';
 
-export function PriceList({ prices }: { prices: RetailerPrice[] }) {
+/**
+ * Build the `/api/click` URL that logs the click and then redirects to the
+ * affiliate-wrapped retailer URL. Logging happens fire-and-forget inside
+ * the API route so the redirect is fast.
+ */
+function clickUrl(productId: string, retailerId: string, retailerUrl: string | null): string {
+  if (!retailerUrl) return '#';
+  const params = new URLSearchParams({
+    p: productId,
+    r: retailerId,
+    u: retailerUrl,
+  });
+  return `/api/click?${params.toString()}`;
+}
+
+export function PriceList({
+  prices,
+  productId,
+}: {
+  prices: RetailerPrice[];
+  productId: string;
+}) {
   if (!prices.length) {
     return (
       <div className="text-center py-12 text-muted bg-cream rounded-md">
@@ -26,7 +46,7 @@ export function PriceList({ prices }: { prices: RetailerPrice[] }) {
         return (
           <a
             key={p.retailer_id}
-            href={affiliateUrl(p.url)}
+            href={clickUrl(productId, p.retailer_id, p.url)}
             target="_blank"
             rel="noopener noreferrer"
             className={`group block bg-paper border ${

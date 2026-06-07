@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
-import { getAllProducts, getBrands, getTrendingProducts, getNewReleases } from '@/lib/data';
+import { getAllProducts, getBrands, getTrendingProducts, getNewReleases, getNewsItems, type NewsEvent } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
 
 // Page becomes dynamic because we read the auth cookie to know which products
@@ -8,12 +8,13 @@ import { getUserAlertedProductIds } from '@/lib/alerts';
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [products, brands, alerted, trending, newReleases] = await Promise.all([
+  const [products, brands, alerted, trending, newReleases, news] = await Promise.all([
     getAllProducts(),
     getBrands(),
     getUserAlertedProductIds(),
     getTrendingProducts(8),
     getNewReleases(4),
+    getNewsItems(14, 4),
   ]);
   const featured = products.slice(0, 8);
 
@@ -56,6 +57,19 @@ export default async function HomePage() {
           link={{ label: 'View all', href: '/products' }}
         >
           <ProductGrid products={trending} alerted={alerted} />
+        </Section>
+      )}
+
+      {/* NEWS PREVIEW — small chronological strip linking to /news */}
+      {news.length > 0 && (
+        <Section
+          eyebrow="Just in"
+          title="Latest"
+          link={{ label: 'All news →', href: '/news' }}
+        >
+          <ul className="space-y-3">
+            {news.map((e, i) => <NewsPreviewRow key={`${e.type}-${i}`} event={e} />)}
+          </ul>
         </Section>
       )}
 
@@ -148,6 +162,80 @@ function Section({
       </div>
       {children}
     </section>
+  );
+}
+
+function NewsPreviewRow({ event }: { event: NewsEvent }) {
+  const ago = (() => {
+    const hours = Math.floor((Date.now() - new Date(event.when).getTime()) / 3600000);
+    return hours < 1 ? 'just now' : hours < 24 ? `${hours}h ago` : `${Math.floor(hours / 24)}d ago`;
+  })();
+
+  // Articles are external links — wrap the row in <a> with target=_blank.
+  // Data events are internal links — wrap in <Link>. Same layout otherwise.
+  if (event.type === 'article') {
+    return (
+      <li>
+        <a
+          href={event.url}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="flex items-center gap-4 py-3 border-b border-line hover:bg-cream/40 -mx-3 px-3 rounded-sm transition-colors group"
+        >
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shrink-0 bg-ink text-paper">
+            Article
+          </span>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-ink truncate group-hover:text-accent transition-colors">
+              {event.title}
+            </div>
+            <div className="text-xs text-dim truncate">Read on {event.source} ↗</div>
+          </div>
+          <span className="text-xs text-dim shrink-0">{ago}</span>
+        </a>
+      </li>
+    );
+  }
+
+  // Data event row (price-drop / restock / new-product)
+  const href = `/products/${event.product_slug}`;
+  const brand = event.brand_name.toLowerCase();
+  const productName = event.product_name.toLowerCase().startsWith(brand)
+    ? event.product_name
+    : `${event.brand_name} ${event.product_name}`;
+
+  let tag: { label: string; cls: string };
+  let summary: string;
+  if (event.type === 'price-drop') {
+    const pct = Math.round((event.savings / event.oldPrice) * 100);
+    tag = { label: 'Price drop', cls: 'bg-accent text-white' };
+    summary = `Now £${event.newPrice.toFixed(2)} at ${event.retailer_name} — ${pct}% off`;
+  } else if (event.type === 'restock') {
+    tag = { label: 'Restocked', cls: 'bg-emerald-100 text-emerald-700 border border-emerald-200' };
+    summary = `Back in stock at ${event.retailer_name} for £${event.price.toFixed(2)}`;
+  } else {
+    tag = { label: 'Now tracking', cls: 'bg-cream text-ink border border-line' };
+    summary = 'Just added to Clipprr';
+  }
+
+  return (
+    <li>
+      <Link
+        href={href}
+        className="flex items-center gap-4 py-3 border-b border-line hover:bg-cream/40 -mx-3 px-3 rounded-sm transition-colors group"
+      >
+        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded shrink-0 ${tag.cls}`}>
+          {tag.label}
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-ink truncate group-hover:text-accent transition-colors">
+            {productName}
+          </div>
+          <div className="text-xs text-dim truncate">{summary}</div>
+        </div>
+        <span className="text-xs text-dim shrink-0">{ago}</span>
+      </Link>
+    </li>
   );
 }
 

@@ -56,7 +56,7 @@ export default async function NewsPage() {
       ) : (
         <ul className="space-y-4">
           {events.map((e, i) => (
-            <li key={`${e.type}-${e.product_id}-${i}`}>
+            <li key={`${e.type}-${i}`}>
               <NewsRow event={e} />
             </li>
           ))}
@@ -67,6 +67,43 @@ export default async function NewsPage() {
 }
 
 function NewsRow({ event }: { event: NewsEvent }) {
+  if (event.type === 'article') {
+    return (
+      <a
+        href={event.url}
+        target="_blank"
+        rel="noopener noreferrer nofollow"
+        className="block bg-paper border border-line rounded-md p-5 hover:border-ink transition-colors group"
+      >
+        <div className="flex items-center gap-3 mb-2">
+          <Tag tone="article">Article</Tag>
+          <RelativeTime iso={event.when} />
+          <span className="text-xs text-dim">· {event.source}</span>
+        </div>
+        <div className="flex gap-4">
+          <div className="flex-1 min-w-0">
+            <h2 className="text-lg font-bold text-ink group-hover:text-accent transition-colors mb-1.5 leading-snug">
+              {event.title}
+            </h2>
+            {event.excerpt && (
+              <p className="text-sm text-muted leading-relaxed line-clamp-2">{event.excerpt}</p>
+            )}
+            <div className="text-xs text-dim mt-2">Read on {event.source} ↗</div>
+          </div>
+          {event.image_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.image_url}
+              alt=""
+              className="hidden sm:block w-24 h-24 object-cover rounded-sm flex-shrink-0"
+              loading="lazy"
+            />
+          )}
+        </div>
+      </a>
+    );
+  }
+
   const href = `/products/${event.product_slug}`;
 
   if (event.type === 'price-drop') {
@@ -138,7 +175,7 @@ function Tag({
   tone,
   children,
 }: {
-  tone: 'good' | 'info' | 'neutral';
+  tone: 'good' | 'info' | 'neutral' | 'article';
   children: React.ReactNode;
 }) {
   const cls =
@@ -146,7 +183,9 @@ function Tag({
       ? 'bg-accent text-white'
       : tone === 'info'
         ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
-        : 'bg-cream text-ink border border-line';
+        : tone === 'article'
+          ? 'bg-ink text-paper'
+          : 'bg-cream text-ink border border-line';
   return (
     <span
       className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${cls}`}

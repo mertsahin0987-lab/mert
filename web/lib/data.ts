@@ -231,6 +231,15 @@ export type NewsEvent =
       product_name: string;
       brand_name: string;
       when: string;
+    }
+  | {
+      type: 'article';
+      title: string;
+      url: string;                // outbound link to the original source
+      source: string;             // e.g. "Barber Beauty Supply UK"
+      excerpt: string | null;
+      image_url: string | null;
+      when: string;
     };
 
 /**
@@ -345,6 +354,30 @@ export async function getNewsItems(days: number = 14, limit: number = 30): Promi
       brand_name: product.brand_name,
       when: p.created_at,
     });
+  }
+
+  // Editorial articles scraped from third-party barber blogs. Same window
+  // as the data-events so the feed stays coherent. Falls back to nothing
+  // if the table doesn't exist yet (migration 005 not applied).
+  try {
+    const { data: articles } = await supabase
+      .from('news_articles')
+      .select('title, url, source, excerpt, image_url, published_at')
+      .gte('published_at', since)
+      .order('published_at', { ascending: false });
+    for (const a of articles ?? []) {
+      events.push({
+        type: 'article',
+        title: a.title,
+        url: a.url,
+        source: a.source,
+        excerpt: a.excerpt,
+        image_url: a.image_url,
+        when: a.published_at,
+      });
+    }
+  } catch {
+    // table missing — no articles in feed yet
   }
 
   // Newest first, capped at limit

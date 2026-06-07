@@ -26,9 +26,38 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const product = await getProductBySlug(slug);
   if (!product) return { title: 'Not found' };
+
+  const siteUrl = 'https://clipprr.co.uk';
+  const url = `${siteUrl}/products/${product.slug}`;
+  const title = `${product.brand_name} ${product.name} — UK price comparison`;
+  const description = `Live prices for the ${product.brand_name} ${product.name} across every major UK retailer. Compare and find the cheapest deal today.`;
+
+  // og:image — preview when the product is shared on WhatsApp, Twitter, etc.
+  // Falls back to the site's default share image when this product has none.
+  const heroImage = product.image_url
+    ? product.image_url
+    : product.image_key
+      ? `${siteUrl}/products/${product.image_key}.png`
+      : undefined;
+
   return {
-    title: `${product.brand_name} ${product.name} — UK price comparison`,
-    description: `Live prices for the ${product.brand_name} ${product.name} across every major UK retailer. Compare and find the cheapest deal today.`,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: 'Clipprr',
+      images: heroImage ? [{ url: heroImage, width: 1000, height: 1000, alt: product.name }] : undefined,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: heroImage ? [heroImage] : undefined,
+    },
   };
 }
 
@@ -56,8 +85,81 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         ? Math.min(...allPrices)
         : product.base_price;
 
+  // Schema.org JSON-LD — tells Google "this is a Product with these offers"
+  // so it can show the price/stock in search results and qualify for the
+  // product carousel. One Offer per retailer; AggregateOffer summarises the
+  // full range. Skipped entirely when we have no prices (no use lying about
+  // availability when we don't know).
+  const siteUrl = 'https://clipprr.co.uk';
+  const productImages =
+    product.image_url
+      ? [product.image_url]
+      : getProductImages(product.image_key).map((p) => `${siteUrl}${p}`);
+
+  const productSchema = prices.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: `${product.brand_name} ${product.name}`,
+    description: product.description ?? `Live UK prices for the ${product.brand_name} ${product.name} across every major retailer.`,
+    image: productImages.length > 0 ? productImages : undefined,
+    brand: { '@type': 'Brand', name: product.brand_name },
+    category: product.category,
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'GBP',
+      lowPrice: Math.min(...allPrices).toFixed(2),
+      highPrice: Math.max(...allPrices).toFixed(2),
+      offerCount: prices.length,
+      availability: inStockPrices.length > 0
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/OutOfStock',
+      offers: prices.map((p) => ({
+        '@type': 'Offer',
+        seller: { '@type': 'Organization', name: p.retailer_name },
+        price: p.price.toFixed(2),
+        priceCurrency: 'GBP',
+        url: p.url ?? undefined,
+        availability: p.in_stock
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+      })),
+    },
+  } : null;
+
+  const breadcrumbSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: siteUrl },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: product.brand_name,
+        item: `${siteUrl}/brands/${slugify(product.brand_name)}`,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.name,
+        item: `${siteUrl}/products/${product.slug}`,
+      },
+    ],
+  };
+
   return (
     <article>
+      {/* Schema.org structured data — Google reads this for rich product results */}
+      {productSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+        />
+      )}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
+      />
+
       <div className="mx-auto max-w-7xl px-6 py-8">
         {/* Breadcrumbs */}
         <nav className="text-sm text-dim mb-6 flex gap-2 items-center">

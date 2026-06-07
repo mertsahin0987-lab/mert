@@ -1,8 +1,15 @@
+import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
 import { FilterSidebar, FilterTopbar, FiltersProvider } from '@/components/Filters';
-import { searchProducts, getBrands, getCategories } from '@/lib/data';
+import { searchProducts, getBrands, getCategories, slugify } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
 import { applyFilters, readFilters, facetCounts } from '@/lib/filters';
+
+// Curated suggestions shown in the search empty state. Picking the brands +
+// categories most people actually search for, so users who don't know what
+// to type have a one-tap shortcut to something interesting.
+const SUGGESTED_BRANDS = ['Wahl', 'BaByliss PRO', 'JRL', 'StyleCraft', 'Gamma+', 'Andis'];
+const SUGGESTED_CATEGORIES = ['Clippers', 'Trimmers', 'Shavers', 'Sets'];
 
 export const revalidate = 60;
 export const metadata = { title: 'Search' };
@@ -41,10 +48,14 @@ export default async function SearchPage({
         </form>
       </div>
 
-      {!q ? (
-        <p className="text-dim">Type to search across the catalogue.</p>
-      ) : results.length === 0 ? (
-        <p className="text-dim">No matches for &quot;{q}&quot;. Try a different brand or product name.</p>
+      {!q || results.length === 0 ? (
+        <EmptyState
+          message={
+            results.length === 0 && q
+              ? `No matches for "${q}". Try a different brand or product name.`
+              : 'Type a brand or product, or jump straight to one of these:'
+          }
+        />
       ) : (
         <FiltersProvider>
           <div className="grid md:grid-cols-[220px_1fr] lg:grid-cols-[240px_1fr] gap-10">
@@ -69,5 +80,43 @@ export default async function SearchPage({
         </FiltersProvider>
       )}
     </section>
+  );
+}
+
+function EmptyState({ message }: { message: string }) {
+  return (
+    <div className="mt-4">
+      <p className="text-dim mb-8">{message}</p>
+
+      <div className="mb-8">
+        <div className="text-xs font-bold uppercase tracking-widest text-dim mb-3">Popular brands</div>
+        <div className="flex flex-wrap gap-2">
+          {SUGGESTED_BRANDS.map((b) => (
+            <Link
+              key={b}
+              href={`/brands/${slugify(b)}`}
+              className="text-sm font-semibold text-ink border border-line rounded-full px-4 py-1.5 hover:border-ink hover:bg-ink hover:text-paper transition-colors"
+            >
+              {b}
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <div className="text-xs font-bold uppercase tracking-widest text-dim mb-3">Browse by type</div>
+        <div className="flex flex-wrap gap-2">
+          {SUGGESTED_CATEGORIES.map((c) => (
+            <Link
+              key={c}
+              href={`/categories/${c.toLowerCase()}`}
+              className="text-sm font-semibold text-ink border border-line rounded-full px-4 py-1.5 hover:border-ink hover:bg-ink hover:text-paper transition-colors"
+            >
+              {c}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </div>
   );
 }

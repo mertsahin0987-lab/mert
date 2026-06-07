@@ -4,7 +4,7 @@ import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { useColorScheme } from '@/components/useColorScheme';
 import { useTheme } from '@/components/ThemeContext';
 import Colors from '@/constants/Colors';
-import { useFavourites } from '@/components/FavouritesContext';
+import { useAuth } from '@/components/AuthContext';
 import { useOnboarding } from '@/components/OnboardingContext';
 import { useCurrency } from '@/components/CurrencyContext';
 import { useRouter } from 'expo-router';
@@ -37,7 +37,9 @@ export default function ProfileScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
   const { isDark, toggleTheme } = useTheme();
-  const { isLoggedIn, setIsLoggedIn } = useFavourites();
+  // Auth state comes from Supabase now, not the local Favourites toggle.
+  const { user, signOut } = useAuth();
+  const isLoggedIn = !!user;
   const { resetOnboarding } = useOnboarding();
   const { currency } = useCurrency();
   const router = useRouter();
@@ -54,15 +56,17 @@ export default function ProfileScreen() {
         </View>
         {isLoggedIn ? (
           <>
-            <Text style={[styles.name, { color: colors.text }]}>John Doe</Text>
-            <Text style={[styles.email, { color: colors.textSecondary }]}>john@example.com</Text>
+            <Text style={[styles.name, { color: colors.text }]}>Signed in</Text>
+            <Text style={[styles.email, { color: colors.textSecondary }]}>
+              {user?.email}
+            </Text>
           </>
         ) : (
           <>
             <Text style={[styles.name, { color: colors.text }]}>Guest</Text>
             <Pressable
               style={[styles.signInButton, { backgroundColor: colors.text }]}
-              onPress={() => setIsLoggedIn(true)}
+              onPress={() => router.push('/sign-in' as any)}
             >
               <Text style={[styles.signInText, { color: colors.background }]}>Sign In</Text>
             </Pressable>
@@ -165,7 +169,7 @@ export default function ProfileScreen() {
         <View style={styles.section}>
           <Pressable
             style={[styles.signOutButton, { borderColor: colors.accent }]}
-            onPress={() => setIsLoggedIn(false)}
+            onPress={signOut}
           >
             <Text style={[styles.signOutText, { color: colors.accent }]}>Sign Out</Text>
           </Pressable>

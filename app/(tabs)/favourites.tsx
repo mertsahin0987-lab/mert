@@ -1,16 +1,21 @@
 import React from 'react';
 import { StyleSheet, View, Text, FlatList, Pressable } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useProducts } from '@/lib/DataContext';
 import { useFavourites } from '@/components/FavouritesContext';
+import { useAuth } from '@/components/AuthContext';
 import ProductCard from '@/components/ProductCard';
 
 export default function FavouritesScreen() {
   const colorScheme = useColorScheme() ?? 'light';
   const colors = Colors[colorScheme];
-  const { favourites, isLoggedIn, setIsLoggedIn } = useFavourites();
+  const router = useRouter();
+  const { favourites } = useFavourites();
+  const { user } = useAuth();
+  const isLoggedIn = !!user;
   const products = useProducts();
 
   const favouriteProducts = products.filter(p => favourites.has(p.id));
@@ -33,7 +38,7 @@ export default function FavouritesScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       {!isLoggedIn && (
         <Pressable
-          onPress={() => setIsLoggedIn(true)}
+          onPress={() => router.push('/sign-in' as any)}
           style={[styles.signInBanner, { backgroundColor: colors.surface, borderColor: colors.border }]}
         >
           <View style={{ flex: 1 }}>

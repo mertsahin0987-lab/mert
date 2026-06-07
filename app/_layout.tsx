@@ -8,6 +8,7 @@ import { Platform } from 'react-native';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
+import { AuthProvider } from '@/components/AuthContext';
 import { FavouritesProvider } from '@/components/FavouritesContext';
 import { ThemeProvider } from '@/components/ThemeContext';
 import { OnboardingProvider, useOnboarding } from '@/components/OnboardingContext';
@@ -54,11 +55,13 @@ export default function RootLayout() {
       <CurrencyProvider>
         <AlertSettingsProvider>
           <OnboardingProvider>
-            <FavouritesProvider>
-              <DataProvider>
-                <RootLayoutNav />
-              </DataProvider>
-            </FavouritesProvider>
+            <AuthProvider>
+              <FavouritesProvider>
+                <DataProvider>
+                  <RootLayoutNav />
+                </DataProvider>
+              </FavouritesProvider>
+            </AuthProvider>
           </OnboardingProvider>
         </AlertSettingsProvider>
       </CurrencyProvider>
@@ -92,6 +95,10 @@ function RootLayoutNav() {
         <Stack.Screen name="onboarding" options={{ headerShown: false }} />
         <Stack.Screen name="currency" options={{ headerShown: false, presentation: 'modal' }} />
         <Stack.Screen name="alert-settings" options={{ headerShown: false }} />
+        <Stack.Screen
+          name="sign-in"
+          options={{ headerShown: false, presentation: 'modal' }}
+        />
       </Stack>
     </NavThemeProvider>
   );

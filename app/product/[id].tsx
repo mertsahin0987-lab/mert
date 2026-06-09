@@ -22,6 +22,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useFavourites } from '@/components/FavouritesContext';
 import { useCurrency } from '@/components/CurrencyContext';
 import ProductCard from '@/components/ProductCard';
+import { affiliateUrl } from '@/lib/affiliate';
 
 export default function ProductDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -96,8 +97,12 @@ export default function ProductDetailScreen() {
     }
   };
 
-  const handleStorePress = async (url: string) => {
-    if (!url) return;
+  const handleStorePress = async (rawUrl: string) => {
+    if (!rawUrl) return;
+    // Wrap any Amazon URL with our affiliate tag (clipprr-21) before opening.
+    // Non-Amazon URLs pass through unchanged. Same logic the website uses, so
+    // a click in the app and a click in the browser earn the same commission.
+    const url = affiliateUrl(rawUrl);
     try {
       if (Platform.OS === 'web') {
         // On web, plain Linking.openURL() triggers Chrome's popup blocker

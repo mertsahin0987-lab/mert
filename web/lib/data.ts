@@ -141,6 +141,98 @@ export async function getProductsByCategory(category: string): Promise<Product[]
 }
 
 // ---------------------------------------------------------------------------
+// Colour variants — finds sibling products of the same model in other
+// colours / finishes (Black, Gold, Matte Black, etc.). We keep each colour
+// as its own product (matches the Sole Supplier / StockX pattern for SKU
+// colourways) and surface the relationship on the product page so visitors
+// can hop between siblings.
+// ---------------------------------------------------------------------------
+
+const VARIANT_COLOURS = [
+  // Multi-word first so 'Rose Gold' doesn't get mistaken for 'Rose' + 'Gold'
+  'Rose Gold', 'Matte Black', 'Pearl White', 'Dark Teal',
+  'Black', 'White', 'Gold', 'Silver', 'Red', 'Blue', 'Green', 'Yellow',
+  'Pink', 'Orange', 'Purple', 'Chrome', 'Bronze', 'Camo', 'Burgundy',
+  'Rainbow',
+];
+
+/**
+ * Pulls a colour token out of the product name if there is one. Looks for the
+ * colour at the end as either `(Colour)`, `- Colour`, or just trailing
+ * `Colour`.
+ */
+function detectColour(name: string): string | null {
+  for (const c of VARIANT_COLOURS) {
+    const cEsc = c.replace(/\+/g, '\\+');
+    const re = new RegExp(`(?:\\(|\\s|-\\s*|–\\s*)${cEsc}\\b\\s*\\)?\\s*$`, 'i');
+    if (re.test(name)) return c;
+  }
+  return null;
+}
+
+/**
+ * Strips the colour (and trailing parentheses) off a product name to give a
+ * shared "base" key that groups colour siblings together.
+ */
+function variantBaseName(name: string): string {
+  let n = name.replace(/\s*\([^)]+\)\s*$/, '');
+  for (const c of VARIANT_COLOURS) {
+    const cEsc = c.replace(/\+/g, '\\+');
+    n = n.replace(new RegExp(`\\b${cEsc}\\b`, 'i'), '');
+  }
+  return n
+    .replace(/\s+-\s*$/, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
+}
+
+export type ColourSibling = {
+  product_id: string;
+  product_slug: string;
+  product_name: string;
+  colour: string;
+  image_key: string | null;
+  image_url: string | null;
+  current_price: number;
+  in_stock: boolean;
+};
+
+/**
+ * Returns sibling products in other colours for the given product, sorted
+ * by current price ascending so the cheapest colour appears first. Empty
+ * array if the product has no detectable colour or no siblings.
+ */
+export async function getColourSiblings(productId: string): Promise<ColourSibling[]> {
+  const all = await getAllProducts();
+  const self = all.find((p) => p.id === productId);
+  if (!self) return [];
+  const colour = detectColour(self.name);
+  if (!colour) return [];
+  const base = variantBaseName(self.name);
+
+  return all
+    .filter((p) => {
+      if (p.id === productId) return false;
+      if (p.brand_id !== self.brand_id) return false;
+      const otherColour = detectColour(p.name);
+      if (!otherColour) return false;
+      return variantBaseName(p.name) === base;
+    })
+    .map((p) => ({
+      product_id: p.id,
+      product_slug: p.slug,
+      product_name: p.name,
+      colour: detectColour(p.name) ?? '',
+      image_key: p.image_key,
+      image_url: p.image_url,
+      current_price: p.base_price,
+      in_stock: p.in_stock,
+    }))
+    .sort((a, b) => a.current_price - b.current_price);
+}
+
+// ---------------------------------------------------------------------------
 // Trending — driven by real retailer-click counts when we have them, falls
 // back to a randomised pick from the catalogue while click data is sparse.
 //

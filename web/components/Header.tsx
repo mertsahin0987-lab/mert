@@ -31,7 +31,6 @@ export async function Header() {
           >
             Sale
           </Link>
-          <Link href="/news" className="hover:text-ink transition-colors">News</Link>
           <Link href="/products" className="hover:text-ink transition-colors">Catalogue</Link>
         </nav>
 

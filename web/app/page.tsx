@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
-import { getAllProducts, getBrands, getTrendingProducts, getNewReleases } from '@/lib/data';
+import { getAllProducts, getBrands, getTrendingProducts, getNewReleases, getUpcomingReleases } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
 
 // Page becomes dynamic because we read the auth cookie to know which products
@@ -8,12 +8,13 @@ import { getUserAlertedProductIds } from '@/lib/alerts';
 export const revalidate = 60;
 
 export default async function HomePage() {
-  const [products, brands, alerted, trending, newReleases] = await Promise.all([
+  const [products, brands, alerted, trending, newReleases, upcoming] = await Promise.all([
     getAllProducts(),
     getBrands(),
     getUserAlertedProductIds(),
     getTrendingProducts(8),
     getNewReleases(4),
+    getUpcomingReleases(8),
   ]);
   const featured = products.slice(0, 8);
 
@@ -56,6 +57,21 @@ export default async function HomePage() {
           link={{ label: 'View all', href: '/products' }}
         >
           <ProductGrid products={trending} alerted={alerted} />
+        </Section>
+      )}
+
+      {/* COMING SOON — products we know are launching but no UK retailer
+          carries yet. Visitors can set a bell to be notified when prices
+          start showing up. */}
+      {upcoming.length > 0 && (
+        <Section
+          eyebrow="Watch the drops"
+          title="Coming soon"
+          link={{ label: 'View all', href: '/products' }}
+        >
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-4 gap-y-10">
+            {upcoming.map((p) => <ProductCard key={p.id} product={p} tracking={alerted.has(p.id)} />)}
+          </div>
         </Section>
       )}
 

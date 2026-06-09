@@ -21,7 +21,8 @@ export type Product = {
   description: string | null;
   is_new: boolean;
   trending: boolean;
-  in_stock: boolean;     // true if ANY retailer reports it in stock (or no data yet)
+  upcoming_release: boolean;  // not stocked yet at any UK retailer — Coming Soon
+  in_stock: boolean;          // true if ANY retailer reports it in stock (or no data yet)
 };
 
 export type RetailerPrice = {
@@ -63,6 +64,7 @@ function toProduct(p: any, brandName: string, inStock: boolean = true): Product 
     description: p.description,
     is_new: p.is_new,
     trending: p.trending,
+    upcoming_release: !!p.upcoming_release,
     in_stock: inStock,
   };
 }
@@ -94,7 +96,7 @@ export async function getAllProducts(): Promise<Product[]> {
   const [productsRes, brandMap, stockMap] = await Promise.all([
     supabase
       .from('products')
-      .select('id, name, brand_id, category, image_key, image_url, base_price, compare_at_price, description, is_new, trending')
+      .select('id, name, brand_id, category, image_key, image_url, base_price, compare_at_price, description, is_new, trending, upcoming_release')
       .order('id'),
     getBrandNameMap(),
     getProductStockMap(),
@@ -264,7 +266,10 @@ export async function getTrendingProducts(limit: number = 8): Promise<Product[]>
   const all = await getAllProducts();
   // Only show products that are presentable + buyable. A "trending" tile
   // pointing at an out-of-stock item with no image is a bad first impression.
-  const eligible = all.filter((p) => p.in_stock && (p.image_url || p.image_key));
+  // Upcoming releases are excluded — they have no retailers yet.
+  const eligible = all.filter(
+    (p) => p.in_stock && !p.upcoming_release && (p.image_url || p.image_key),
+  );
 
   if (clickCounts.size >= limit) {
     // We have real engagement data — sort by clicks, break ties at random
@@ -475,6 +480,25 @@ export async function getNewsItems(days: number = 14, limit: number = 30): Promi
   // Newest first, capped at limit
   return events
     .sort((a, b) => b.when.localeCompare(a.when))
+    .slice(0, limit);
+}
+
+/**
+ * Products marked upcoming_release in the catalogue, sorted by release_date
+ * ascending (soonest first), then by name. These are products that aren't
+ * stocked yet at any UK retailer but we want visitors to know are coming
+ * — the visible 'Coming soon' surface lets people set a bell to be
+ * notified when prices start showing up.
+ */
+export async function getUpcomingReleases(limit: number = 8): Promise<Product[]> {
+  const all = await getAllProducts();
+  return all
+    .filter((p) => {
+      // Read upcoming_release off the raw row via the typed Product cast
+      // (we don't expose it on Product yet because no other surface needed it)
+      return (p as any).upcoming_release === true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
     .slice(0, limit);
 }
 

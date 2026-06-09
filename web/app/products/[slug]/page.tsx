@@ -189,7 +189,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
               {product.name}
             </h1>
-            {prices.length > 0 && (
+            {product.upcoming_release ? (
+              <div className="mb-4 inline-flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-800 px-3 py-1.5 rounded-full text-sm font-semibold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                Coming soon · set a bell to be notified
+              </div>
+            ) : prices.length > 0 && (
               <div className="mb-4">
                 <div className="text-2xl font-bold text-ink">
                   From <span className="text-accent">£{cheapest.toFixed(2)}</span>

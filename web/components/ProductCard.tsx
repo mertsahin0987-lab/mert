@@ -39,8 +39,12 @@ export function ProductCard({
           <div className="w-full h-full flex items-center justify-center text-dim text-xs">No image</div>
         )}
 
-        {/* Top-left badges: OOS takes priority over sale (both rarely happen anyway) */}
-        {oos ? (
+        {/* Top-left badge priority: Coming soon → OOS → Sale */}
+        {product.upcoming_release ? (
+          <span className="absolute top-2 left-2 bg-emerald-600 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded backdrop-blur-sm">
+            Coming soon
+          </span>
+        ) : oos ? (
           <span className="absolute top-2 left-2 bg-ink/85 text-white text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded backdrop-blur-sm">
             Out of stock
           </span>
@@ -58,7 +62,11 @@ export function ProductCard({
         {product.name}
       </h3>
 
-      {onSale ? (
+      {product.upcoming_release ? (
+        <div className="text-[13px] font-semibold text-emerald-700">
+          Set a price alert →
+        </div>
+      ) : onSale ? (
         <div className="flex items-baseline gap-2">
           <span className={`text-[15px] font-semibold ${oos ? 'text-muted' : 'text-accent'}`}>£{product.base_price.toFixed(2)}</span>
           <span className="text-[13px] text-dim line-through">£{(product.compare_at_price as number).toFixed(2)}</span>
@@ -66,7 +74,9 @@ export function ProductCard({
       ) : (
         <div className={`text-[15px] font-semibold ${oos ? 'text-muted' : 'text-ink'}`}>£{product.base_price.toFixed(2)}</div>
       )}
-      <div className="text-[11px] text-dim mt-0.5">£{exVat(product.base_price).toFixed(2)} ex VAT</div>
+      {!product.upcoming_release && (
+        <div className="text-[11px] text-dim mt-0.5">£{exVat(product.base_price).toFixed(2)} ex VAT</div>
+      )}
     </Link>
   );
 }

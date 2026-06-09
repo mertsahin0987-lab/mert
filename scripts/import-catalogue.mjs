@@ -71,6 +71,11 @@ const RETAILERS = {
       { slug: 'wahl-clippers-trimmers',          dbName: 'Wahl' },
       { slug: 'babyliss-pro-clippers-trimmers',  dbName: 'BaByliss PRO' },
       { slug: 'andis',                            dbName: 'Andis' },
+      { slug: 'jrl-clippers-trimmers',           dbName: 'JRL' },
+      { slug: 'stylecraft-clippers-trimmers',    dbName: 'StyleCraft' },
+      { slug: 'gamma-plus-clippers-trimmers',    dbName: 'Gamma+' },
+      { slug: 'cocco-clippers-trimmers',         dbName: 'Cocco' },
+      { slug: 'supreme-clippers-trimmers',       dbName: 'Supreme Trimmer' },
     ],
   },
 };

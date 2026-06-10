@@ -54,5 +54,15 @@ export async function shopifyScrape(url) {
     throw new Error('Could not parse Shopify price (variant JSON + storefront meta both empty)');
   }
 
-  return { price, inStock: !!available };
+  // compare_at_price is the RRP / strike-through. Shopify returns it on the
+  // variant only when the storefront has been configured with a "sale" — i.e.
+  // when current price < RRP. We only surface it when it's actually higher
+  // than the current price (a true discount); spurious equal values are
+  // ignored. Powers the /sale page on the website.
+  const compareAtRaw = parsePrice(v.compare_at_price);
+  const compareAtPrice = compareAtRaw != null && compareAtRaw > price + 0.01
+    ? compareAtRaw
+    : null;
+
+  return { price, inStock: !!available, compareAtPrice };
 }

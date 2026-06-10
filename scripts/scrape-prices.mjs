@@ -95,7 +95,7 @@ function findScraper(url) {
 // DB writes
 // ============================================================================
 
-async function recordResult({ productId, retailerId, url, price, inStock, error }) {
+async function recordResult({ productId, retailerId, url, price, inStock, compareAtPrice, error }) {
   if (DRY_RUN) return;
 
   // Update the canonical "current price" row (only on success — we don't want
@@ -107,6 +107,26 @@ async function recordResult({ productId, retailerId, url, price, inStock, error 
       .eq('product_id', productId)
       .eq('retailer_id', retailerId);
     if (upErr) console.warn(`    DB update failed: ${upErr.message}`);
+
+    // RRP / "compare at" — schema stores one figure per product, so we keep
+    // the highest RRP we've seen across retailers (brand-set MSRP is usually
+    // consistent, and the highest figure is the safest "was £" headline).
+    // Cleared on the next scrape if no retailer reports it any more.
+    if (compareAtPrice != null) {
+      const { data: prod } = await supabase
+        .from('products')
+        .select('compare_at_price')
+        .eq('id', productId)
+        .single();
+      const current = prod?.compare_at_price != null ? Number(prod.compare_at_price) : 0;
+      if (compareAtPrice > current + 0.01) {
+        const { error: capErr } = await supabase
+          .from('products')
+          .update({ compare_at_price: compareAtPrice })
+          .eq('id', productId);
+        if (capErr) console.warn(`    compare_at_price update failed: ${capErr.message}`);
+      }
+    }
 
     // Append to price_history (clean time series — only successful scrapes)
     const { error: histErr } = await supabase.from('price_history').insert({
@@ -174,6 +194,7 @@ for (let i = 0; i < todo.length; i++) {
       url: row.url,
       price: result.price,
       inStock: result.inStock,
+      compareAtPrice: result.compareAtPrice ?? null,
     });
     stats.ok++;
     if (changed) stats.changed++;

@@ -14,6 +14,12 @@ export async function scrape(url) {
   const html = await fetchHtml(url);
   const $ = cheerio.load(html);
 
+  // BigCommerce surfaces the strike-through RRP in a dedicated inc-VAT
+  // container only when the product is on sale. JSON-LD doesn't expose
+  // it, so we pull it from the DOM (".rrp-price--withTax" → "Was £X").
+  const rrpText = $('.price-section.rrp-price-section.rrp-price--withTax').first().text();
+  const rrpRaw = parsePrice(rrpText);
+
   // Primary source: JSON-LD product schema
   const ldBlocks = $('script[type="application/ld+json"]')
     .map((_, el) => $(el).contents().text())
@@ -34,7 +40,8 @@ export async function scrape(url) {
             const inStock = avail.includes('instock') || avail.includes('in_stock')
               ? true
               : avail.includes('outofstock') ? false : true;
-            return { price, inStock };
+            const compareAtPrice = rrpRaw != null && rrpRaw > price + 0.01 ? rrpRaw : null;
+            return { price, inStock, compareAtPrice };
           }
         }
       }
@@ -48,7 +55,8 @@ export async function scrape(url) {
   const stockText = $('[data-product-stock-level], .productView-info, .form-action').first().text();
   const price = parsePrice(priceText);
   if (price == null) throw new Error('Could not find price on Coolblades page');
-  return { price, inStock: parseStock(stockText) };
+  const compareAtPrice = rrpRaw != null && rrpRaw > price + 0.01 ? rrpRaw : null;
+  return { price, inStock: parseStock(stockText), compareAtPrice };
 }
 
 function pickProduct(node) {

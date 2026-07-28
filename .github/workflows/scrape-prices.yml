@@ -56,14 +56,28 @@ jobs:
         # Cached automatically by setup-node when package-lock.json is unchanged.
         run: npx playwright install --with-deps chromium
       - name: Scrape prices
+        # Per-retailer sequential runs. If one retailer errors, the loop
+        # continues so the others still refresh. Chris & Sons is deliberately
+        # excluded from scheduled runs — Cloudflare aggressively challenges
+        # GitHub Actions IPs, causing every C&S scrape to fail with "Could
+        # not find price". C&S can be scraped manually via workflow_dispatch
+        # (choose 'chris-sons' from the retailer input) or from a laptop.
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          ARGS=""
-          if [ -n "${{ inputs.retailer }}" ]; then ARGS="$ARGS --retailer=${{ inputs.retailer }}"; fi
-          if [ "${{ inputs.dry_run }}" = "true" ]; then ARGS="$ARGS --dry-run"; fi
-          node scripts/scrape-prices.mjs $ARGS
+          if [ -n "${{ inputs.retailer }}" ]; then
+            EXTRA=""
+            if [ "${{ inputs.dry_run }}" = "true" ]; then EXTRA="--dry-run"; fi
+            node scripts/scrape-prices.mjs --retailer=${{ inputs.retailer }} $EXTRA
+          else
+            for r in coolblades salons-direct mcr-barber eson-direct barber-beauty jrl-direct amazon-uk; do
+              echo "════════════════════════════════════════════════════════"
+              echo "  Scraping $r"
+              echo "════════════════════════════════════════════════════════"
+              node scripts/scrape-prices.mjs --retailer=$r || echo "! $r failed, continuing"
+            done
+          fi
 
       - name: Recompute base prices
         # Skipped on dry run — there'd be no new prices to recompute from.

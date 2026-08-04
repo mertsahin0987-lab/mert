@@ -110,7 +110,7 @@ export function SearchBar() {
             The invisible span reserves the exact pixel width of what the
             user has typed so the completion aligns perfectly after their
             caret. Same font-size + padding on both so the alignment holds. */}
-        <div className="relative bg-cream border border-line rounded-md w-full max-w-[240px] focus-within:border-ink transition-colors">
+        <div className="relative bg-cream border border-line rounded-md w-full max-w-[240px] focus-within:border-ink transition-colors overflow-hidden">
           {ghostCompletion && (
             <div
               aria-hidden="true"

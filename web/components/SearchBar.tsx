@@ -114,10 +114,10 @@ export function SearchBar() {
           {ghostCompletion && (
             <div
               aria-hidden="true"
-              className="absolute inset-0 flex items-center px-3 py-1.5 text-sm whitespace-pre pointer-events-none select-none"
+              className="absolute inset-0 flex items-center px-3 py-1.5 text-sm whitespace-pre pointer-events-none select-none overflow-hidden"
             >
-              <span className="invisible">{query}</span>
-              <span className="text-dim/60">{ghostCompletion}</span>
+              <span className="invisible flex-shrink-0">{query}</span>
+              <span className="text-dim/60 truncate">{ghostCompletion}</span>
             </div>
           )}
           <input

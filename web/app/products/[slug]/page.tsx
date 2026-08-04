@@ -194,14 +194,35 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                 <span className="w-2 h-2 rounded-full bg-emerald-500" />
                 Coming soon · set a bell to be notified
               </div>
-            ) : prices.length > 0 && (
-              <div className="mb-4">
-                <div className="text-2xl font-bold text-ink">
-                  From <span className="text-accent">£{cheapest.toFixed(2)}</span>
+            ) : prices.length > 0 && (() => {
+              // On-sale detection uses the same rule as the product card:
+              // compare_at_price is only trustworthy when it's strictly higher
+              // than the cheapest in-stock price we're actually showing.
+              const rrp = product.compare_at_price;
+              const onSale = rrp != null && rrp > cheapest + 0.01;
+              const savingAmount = onSale ? rrp - cheapest : 0;
+              const savingPct = onSale ? Math.round((1 - cheapest / rrp) * 100) : 0;
+              return (
+                <div className="mb-4">
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <div className="text-2xl font-bold text-ink">
+                      From <span className="text-accent">£{cheapest.toFixed(2)}</span>
+                    </div>
+                    {onSale && (
+                      <span className="text-base text-dim line-through decoration-1">
+                        £{rrp.toFixed(2)}
+                      </span>
+                    )}
+                  </div>
+                  {onSale && (
+                    <div className="text-sm font-semibold text-accent mt-1">
+                      Save £{savingAmount.toFixed(2)} · {savingPct}% off RRP
+                    </div>
+                  )}
+                  <div className="text-sm text-dim mt-1">£{exVat(cheapest).toFixed(2)} ex VAT</div>
                 </div>
-                <div className="text-sm text-dim mt-1">£{exVat(cheapest).toFixed(2)} ex VAT</div>
-              </div>
-            )}
+              );
+            })()}
 
             <div className="mb-6">
               <BellButton

@@ -32,9 +32,11 @@ export function SearchBar() {
 
   // Debounced fetch — cancels in-flight requests when the user keeps typing
   // so we don't get a stale response overwriting a fresh one on slow networks.
+  // We wait for 2 chars before firing anything; single-letter results are
+  // too noisy to be useful.
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 1) { setResults([]); return; }
+    if (q.length < 2) { setResults([]); return; }
     const t = setTimeout(async () => {
       abortRef.current?.abort();
       const ctrl = new AbortController();
@@ -49,6 +51,23 @@ export function SearchBar() {
     }, 140);
     return () => clearTimeout(t);
   }, [query]);
+
+  // Ghost-text autocomplete — when the top match's brand or name starts
+  // with what the user has typed, we show the remainder as a dim overlay
+  // behind the input so users see what they'd end up with if they kept
+  // typing. Prefers brand name (short, clean) over product name.
+  const topMatch = results[0];
+  let ghostCompletion = '';
+  if (topMatch && query.length >= 2) {
+    const qLower = query.toLowerCase();
+    const brandLower = topMatch.brand_name.toLowerCase();
+    const fullLower = `${topMatch.brand_name} ${topMatch.name}`.toLowerCase();
+    if (brandLower.startsWith(qLower) && brandLower !== qLower) {
+      ghostCompletion = topMatch.brand_name.slice(query.length);
+    } else if (fullLower.startsWith(qLower)) {
+      ghostCompletion = `${topMatch.brand_name} ${topMatch.name}`.slice(query.length, query.length + 40);
+    }
+  }
 
   // Close the dropdown on outside click
   useEffect(() => {
@@ -85,21 +104,37 @@ export function SearchBar() {
 
   return (
     <div className="relative flex-1 max-w-xs" ref={boxRef}>
-      <form onSubmit={submit} className="flex items-center gap-2">
-        <input
-          name="q"
-          placeholder="Search"
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          onKeyDown={onKey}
-          autoComplete="off"
-          className="bg-cream border border-line rounded-md px-3 py-1.5 text-sm w-full max-w-[200px] focus:outline-none focus:border-ink transition-colors"
-        />
+      <form onSubmit={submit}>
+        {/* Chrome trick: wrapper holds the background + border, input is
+            transparent on top of it, ghost-text overlay sits underneath.
+            The invisible span reserves the exact pixel width of what the
+            user has typed so the completion aligns perfectly after their
+            caret. Same font-size + padding on both so the alignment holds. */}
+        <div className="relative bg-cream border border-line rounded-md w-full max-w-[240px] focus-within:border-ink transition-colors">
+          {ghostCompletion && (
+            <div
+              aria-hidden="true"
+              className="absolute inset-0 flex items-center px-3 py-1.5 text-sm whitespace-pre pointer-events-none select-none"
+            >
+              <span className="invisible">{query}</span>
+              <span className="text-dim/60">{ghostCompletion}</span>
+            </div>
+          )}
+          <input
+            name="q"
+            placeholder="Search"
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setOpen(true); }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={onKey}
+            autoComplete="off"
+            className="relative w-full bg-transparent px-3 py-1.5 text-sm focus:outline-none"
+          />
+        </div>
       </form>
 
       {open && results.length > 0 && (
-        <div className="absolute top-full right-0 mt-2 w-[360px] max-w-[calc(100vw-2rem)] bg-paper border border-line rounded-md shadow-lg overflow-hidden z-50">
+        <div className="absolute top-full left-0 mt-2 w-[360px] max-w-[calc(100vw-2rem)] bg-paper border border-line rounded-md shadow-lg overflow-hidden z-50">
           <ul className="max-h-[420px] overflow-y-auto">
             {results.map((r, i) => {
               const onSale = r.compare_at_price != null && r.compare_at_price > r.base_price + 0.01;

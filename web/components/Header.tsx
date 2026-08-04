@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createServerSupabase } from '@/lib/supabase-server';
 import { isAdminEmail } from '@/lib/admin';
 import { MobileMenu } from './MobileMenu';
+import { SearchBar } from './SearchBar';
 
 export async function Header() {
   // Server-side auth check — shows "Account" if logged in, "Sign in" otherwise
@@ -35,13 +36,7 @@ export async function Header() {
         </nav>
 
         <div className="flex items-center gap-4 flex-1 justify-end">
-          <form action="/search" className="flex items-center gap-2 max-w-xs">
-            <input
-              name="q"
-              placeholder="Search"
-              className="bg-cream border border-line rounded-md px-3 py-1.5 text-sm w-full max-w-[200px] focus:outline-none focus:border-ink transition-colors"
-            />
-          </form>
+          <SearchBar />
 
           {user ? (
             <>

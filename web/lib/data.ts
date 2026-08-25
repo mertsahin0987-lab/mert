@@ -4,6 +4,7 @@
  */
 
 import { supabase } from './supabase';
+import { adminSupabase } from './admin';
 
 export type Brand = { id: string; name: string; slug: string };
 
@@ -245,22 +246,24 @@ export async function getColourSiblings(productId: string): Promise<ColourSiblin
 // ---------------------------------------------------------------------------
 
 export async function getTrendingProducts(limit: number = 8): Promise<Product[]> {
-  // Pull last-7-day click counts. If the table doesn't exist yet (migration
-  // not applied) or there's simply no click data, we'll fall through to the
-  // randomised path below — never crash.
+  // Rank by all-time click count with a random tie-break. All-time (not last-7d)
+  // because pre-launch traffic is too sparse for a rolling window to populate
+  // meaningfully; every click is signal. Products with zero clicks are all tied
+  // and get shuffled among themselves as filler — same visual effect as the old
+  // random fallback for the long tail, but any clicked product now bubbles up.
   let clickCounts = new Map<string, number>();
   try {
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const { data } = await supabase
-      .from('product_clicks')
-      .select('product_id')
-      .gte('clicked_at', since);
+    // Read via service role: product_clicks has RLS enabled and no SELECT
+    // policy for anon, so the public client returns zero rows even when
+    // data is there. We only need the aggregate popularity signal here —
+    // this is server-only, no data leaves the RSC.
+    const { data } = await adminSupabase().from('product_clicks').select('product_id');
     for (const row of data ?? []) {
       const k = String(row.product_id);
       clickCounts.set(k, (clickCounts.get(k) ?? 0) + 1);
     }
   } catch {
-    // table missing — ignore
+    // service key missing / table missing — everyone ranks 0, effectively random
   }
 
   const all = await getAllProducts();
@@ -271,21 +274,11 @@ export async function getTrendingProducts(limit: number = 8): Promise<Product[]>
     (p) => p.in_stock && !p.upcoming_release && (p.image_url || p.image_key),
   );
 
-  if (clickCounts.size >= limit) {
-    // We have real engagement data — sort by clicks, break ties at random
-    return eligible
-      .map((p) => ({ p, c: clickCounts.get(p.id) ?? 0, r: Math.random() }))
-      .sort((a, b) => b.c - a.c || b.r - a.r)
-      .slice(0, limit)
-      .map((x) => x.p);
-  }
-
-  // No (or sparse) click data — randomise. Shuffle in place then slice.
-  for (let i = eligible.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [eligible[i], eligible[j]] = [eligible[j], eligible[i]];
-  }
-  return eligible.slice(0, limit);
+  return eligible
+    .map((p) => ({ p, c: clickCounts.get(p.id) ?? 0, r: Math.random() }))
+    .sort((a, b) => b.c - a.c || b.r - a.r)
+    .slice(0, limit)
+    .map((x) => x.p);
 }
 
 // ---------------------------------------------------------------------------

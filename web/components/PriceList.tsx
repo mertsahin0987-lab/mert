@@ -38,11 +38,14 @@ export function PriceList({
     return a.price - b.price;
   });
   const cheapestInStock = sorted.find((p) => p.in_stock);
+  // "Best price" only makes sense when there's something to beat.
+  const showBestPriceBadge = sorted.length > 1;
 
   return (
     <div className="space-y-2">
       {sorted.map((p) => {
-        const isCheapest = cheapestInStock != null && p.retailer_id === cheapestInStock.retailer_id;
+        const isCheapest =
+          showBestPriceBadge && cheapestInStock != null && p.retailer_id === cheapestInStock.retailer_id;
         return (
           <a
             key={p.retailer_id}

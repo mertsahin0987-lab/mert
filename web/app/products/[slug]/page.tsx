@@ -237,7 +237,9 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             )}
 
             <div className="mb-3 text-xs font-bold text-ink uppercase tracking-widest">
-              Where to buy
+              {prices.length === 1
+                ? `Available from ${prices[0].retailer_name}`
+                : 'Where to buy'}
             </div>
             <PriceList prices={prices} productId={product.id} />
           </div>

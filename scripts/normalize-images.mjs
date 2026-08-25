@@ -40,12 +40,19 @@ let processed = 0, skipped = 0, failed = 0;
 for (const f of files) {
   const path = join(DIR, f);
   try {
-    const buf = await sharp(path)
-      // Trim near-white edges. threshold = how close to white counts as
-      // "background" — 12 is loose enough to handle slightly off-white JPEG
-      // backgrounds without clipping into product highlights.
-      .trim({ threshold: 12 })
-      .toBuffer();
+    // BaByliss product photos sit on a soft-grey background that trim() reads
+    // as content, leaving an ugly grey halo around the product. Skip the trim
+    // for anything under the babyliss prefix and let the source frame stand.
+    const isBabyliss = f.startsWith('babyliss');
+
+    const buf = isBabyliss
+      ? await sharp(path).toBuffer()
+      : await sharp(path)
+          // Trim near-white edges. threshold = how close to white counts as
+          // "background" — 12 is loose enough to handle slightly off-white JPEG
+          // backgrounds without clipping into product highlights.
+          .trim({ threshold: 12 })
+          .toBuffer();
 
     const trimmed = sharp(buf);
     const meta = await trimmed.metadata();

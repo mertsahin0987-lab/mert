@@ -46,6 +46,10 @@ export function Footer() {
           of product identification. Clipprr is not affiliated with or endorsed by any brand or
           retailer listed.
         </div>
+        <div className="mt-4 text-[11px] text-dim leading-relaxed">
+          Clipprr Ltd is a company registered in England and Wales under company number 17431976.
+          Registered office: 10 Falmouth Close, London N22 8BU.
+        </div>
       </div>
     </footer>
   );

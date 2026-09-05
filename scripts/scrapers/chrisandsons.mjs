@@ -19,34 +19,18 @@ const VAT_MULTIPLIER = 1.20;
 const addVat = (price) => Math.round(price * VAT_MULTIPLIER * 100) / 100;
 
 import * as cheerio from 'cheerio';
-import { browserFetch } from './_browser.mjs';
+import { zenrowsFetch } from './_browser.mjs';
 import { parsePrice, parseStock } from './_lib.mjs';
 
 export const retailerId = 'chris-sons';
 export const matchesDomain = (url) => /(^|\.)chrisandsons\.co\.uk$/i.test(new URL(url).hostname);
 
-// Track whether we've warmed up the Cloudflare session this run.
-// Visiting a couple of non-CF sites first gives the browser a browsing
-// history that makes Cloudflare more likely to pass us through.
-let warmedUp = false;
-
+// C&S sits behind Cloudflare which blocks GitHub Actions IPs outright and
+// intermittently the Mac's home IP. Route every request through ZenRows'
+// premium proxy + antibot pool so the daily cron actually gets prices back.
+// Costs ~25 credits/request — worth it for the ~140 URLs C&S covers.
 export async function scrape(url) {
-  if (!warmedUp) {
-    warmedUp = true;
-    const warmupSites = [
-      'https://www.coolblades.co.uk/',       // non-CF, same industry
-      'https://www.google.co.uk/',            // establishes normal browsing history
-      'https://www.chrisandsons.co.uk/',      // CF homepage — get the session cookie
-    ];
-    for (const site of warmupSites) {
-      try {
-        await browserFetch(site);
-      } catch {
-        // Non-fatal
-      }
-    }
-  }
-  const html = await browserFetch(url);
+  const html = await zenrowsFetch(url);
   const $ = cheerio.load(html);
 
   // 1) JSON-LD product schema (preferred — most reliable)
@@ -84,9 +68,34 @@ export async function scrape(url) {
     '.product-info-main .price-wrapper .price'
   ).first().text();
   const stockText = $('.stock, .product-info-stock-sku, .availability').first().text();
-  const price = parsePrice(priceText);
-  if (price == null) throw new Error('Could not find price on Chris & Sons page');
-  return { price: addVat(price), inStock: parseStock(stockText) };
+  const magentoPrice = parsePrice(priceText);
+  if (magentoPrice != null) {
+    return { price: addVat(magentoPrice), inStock: parseStock(stockText) };
+  }
+
+  // 3) Shopify Hydrogen fallback — C&S has migrated many products to a
+  //    Shopify Oxygen storefront where the Magento DOM selectors don't match.
+  //    Hydrogen doesn't ship a JSON-LD block, so we scrape rendered prices.
+  //    C&S is a trade site and displays ex-VAT prominently with the inc-VAT
+  //    figure right next to it: e.g. "£86.40 / £103.68 inc VAT" (ratio 1.20).
+  //    Finding an adjacent (ex, inc) pair where inc ≈ ex × 1.20 identifies
+  //    the product's own price with high confidence — any promo/shipping
+  //    figures that also appear on the page don't come in that pattern.
+  const priceMatches = [...html.matchAll(/£\s*([\d,]+\.\d{2})/g)]
+    .map((m) => parseFloat(m[1].replace(/,/g, '')))
+    .filter((p) => p >= 1);
+  for (let i = 0; i < priceMatches.length - 1; i++) {
+    const a = priceMatches[i];
+    const b = priceMatches[i + 1];
+    // Allow 1p rounding either way on the ×1.20 relationship.
+    if (Math.abs(b - a * 1.20) <= 0.02) {
+      // `a` is the ex-VAT price; addVat() re-derives the inc-VAT to match.
+      const oosMarker = /out of stock|sold out|unavailable/i.test(html);
+      return { price: addVat(a), inStock: !oosMarker };
+    }
+  }
+
+  throw new Error('Could not find price on Chris & Sons page');
 }
 
 function pickProduct(node) {

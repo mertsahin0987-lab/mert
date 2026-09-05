@@ -31,7 +31,7 @@ import { readdirSync, writeFileSync, existsSync, mkdirSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import * as cheerio from 'cheerio';
-import { browserFetch, browserFetchBytes, closeBrowser } from './scrapers/_browser.mjs';
+import { browserFetch, browserFetchBytes, closeBrowser, zenrowsFetch, zenrowsFetchBytes } from './scrapers/_browser.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PRODUCTS_DIR = join(__dirname, '..', 'web', 'public', 'products');
@@ -134,9 +134,9 @@ async function shopifyImages(productUrl) {
   return (data?.product?.images ?? []).map((i) => i.src).filter(Boolean);
 }
 
-/** Chris & Sons: load via Playwright, extract images from JSON-LD + DOM. */
+/** Chris & Sons: load via ZenRows (Cloudflare block), extract images from JSON-LD + DOM. */
 async function chrisAndSonsImages(productUrl) {
-  const html = await browserFetch(productUrl);
+  const html = await zenrowsFetch(productUrl);
   const $ = cheerio.load(html);
 
   const imageUrls = new Set();
@@ -217,10 +217,13 @@ async function chrisAndSonsImages(productUrl) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Download
 
-async function downloadImage(url, destPath, useBrowser = false, referer = null) {
+async function downloadImage(url, destPath, source = 'plain', referer = null) {
   let buf;
-  if (useBrowser) {
-    // Route through Playwright context — needed for Cloudflare-protected CDNs.
+  if (source === 'chris-sons') {
+    // C&S media CDN is Cloudflare-protected — route via ZenRows.
+    buf = await zenrowsFetchBytes(url, { referer });
+  } else if (source === 'amazon') {
+    // Amazon CDN is public, but keep the browser context so referer + UA match.
     buf = await browserFetchBytes(url, { referer });
   } else {
     const res = await fetch(url, {
@@ -310,9 +313,9 @@ async function main() {
           : `${p.image_key}-${i + 1}.png`;
         const dest = join(PRODUCTS_DIR, filename);
         try {
-          const useBrowser = source.source === 'chris-sons';
-          const referer = useBrowser ? source.url : null;
-          const bytes = await downloadImage(urls[i], dest, useBrowser, referer);
+          const needsProxy = source.source === 'chris-sons' || source.source === 'amazon';
+          const referer = needsProxy ? source.url : null;
+          const bytes = await downloadImage(urls[i], dest, source.source, referer);
           saved++;
           if (i < 3) console.log(`    ✓ ${filename} (${(bytes / 1024).toFixed(0)} KB)`);
         } catch (e) {

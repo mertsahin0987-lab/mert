@@ -138,3 +138,59 @@ export async function closeBrowser() {
   if (context) { await context.close(); context = null; }
   if (browser) { await browser.close(); browser = null; }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ZenRows fallback for Cloudflare-protected sites where local Playwright loses
+// (Chris & Sons blocks GitHub Actions IPs and intermittently the Mac's home IP
+// too). ZenRows runs the request from their proxy pool with antibot + JS
+// render, returning rendered HTML. `premium_proxy=true` costs ~25 credits per
+// request, which is why we only reach for it on retailers that actually need
+// it — local Playwright stays the default everywhere else.
+
+const ZENROWS_ENDPOINT = 'https://api.zenrows.com/v1/';
+
+function zenrowsUrl(target, extra = {}) {
+  const key = process.env.ZENROWS_API_KEY;
+  if (!key) throw new Error('ZENROWS_API_KEY not set');
+  const params = new URLSearchParams({
+    apikey: key,
+    url: target,
+    js_render: 'true',
+    premium_proxy: 'true',
+    proxy_country: 'gb',
+    ...extra,
+  });
+  return `${ZENROWS_ENDPOINT}?${params.toString()}`;
+}
+
+/** Fetch a URL via ZenRows and return the rendered HTML. */
+export async function zenrowsFetch(url, { timeoutMs = 90000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(zenrowsUrl(url), { signal: controller.signal });
+    if (!res.ok) throw new Error(`ZenRows HTTP ${res.status} — ${await res.text().catch(() => '')}`.slice(0, 300));
+    return await res.text();
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** Fetch a URL via ZenRows and return the response body as bytes (for images). */
+export async function zenrowsFetchBytes(url, { referer = null, timeoutMs = 60000 } = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    // For image assets we skip JS rendering — cheaper (fewer credits) and we
+    // just need the binary. `js_render=false` overrides the default above.
+    const extra = { js_render: 'false' };
+    if (referer) extra.custom_headers = 'true';
+    const opts = { signal: controller.signal };
+    if (referer) opts.headers = { Referer: referer };
+    const res = await fetch(zenrowsUrl(url, extra), opts);
+    if (!res.ok) throw new Error(`ZenRows HTTP ${res.status}`);
+    return Buffer.from(await res.arrayBuffer());
+  } finally {
+    clearTimeout(timer);
+  }
+}

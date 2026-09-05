@@ -57,21 +57,22 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Scrape prices
         # Per-retailer sequential runs. If one retailer errors, the loop
-        # continues so the others still refresh. Chris & Sons is deliberately
-        # excluded from scheduled runs — Cloudflare aggressively challenges
-        # GitHub Actions IPs, causing every C&S scrape to fail with "Could
-        # not find price". C&S can be scraped manually via workflow_dispatch
-        # (choose 'chris-sons' from the retailer input) or from a laptop.
+        # continues so the others still refresh. Chris & Sons now runs on
+        # the daily schedule again: ZenRows proxies the request through their
+        # antibot pool so Cloudflare doesn't block GitHub Actions IPs
+        # (see scripts/scrapers/_browser.mjs `zenrowsFetch`). Requires the
+        # ZENROWS_API_KEY secret; without it, C&S will fail and be skipped.
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ZENROWS_API_KEY: ${{ secrets.ZENROWS_API_KEY }}
         run: |
           if [ -n "${{ inputs.retailer }}" ]; then
             EXTRA=""
             if [ "${{ inputs.dry_run }}" = "true" ]; then EXTRA="--dry-run"; fi
             node scripts/scrape-prices.mjs --retailer=${{ inputs.retailer }} $EXTRA
           else
-            for r in coolblades salons-direct mcr-barber eson-direct barber-beauty jrl-direct amazon-uk; do
+            for r in coolblades salons-direct mcr-barber eson-direct barber-beauty jrl-direct amazon-uk chris-sons; do
               echo "════════════════════════════════════════════════════════"
               echo "  Scraping $r"
               echo "════════════════════════════════════════════════════════"
@@ -85,6 +86,7 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ZENROWS_API_KEY: ${{ secrets.ZENROWS_API_KEY }}
         run: node scripts/recompute-base-prices.mjs
 
       - name: Scrape news articles
@@ -96,4 +98,5 @@ jobs:
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ZENROWS_API_KEY: ${{ secrets.ZENROWS_API_KEY }}
         run: node scripts/scrape-news.mjs

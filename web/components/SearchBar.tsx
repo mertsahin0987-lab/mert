@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fullProductName } from '@/lib/data';
+import { fullProductName } from '@/lib/product-name';
 
 type Suggestion = {
   id: string;

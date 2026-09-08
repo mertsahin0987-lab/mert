@@ -46,17 +46,9 @@ export function slugify(s: string): string {
     .replace(/^-|-$/g, '');
 }
 
-/**
- * Full display name for a product — "<Brand> <Name>", but skips the brand
- * prefix when the name already carries it (~200/225 of the catalogue). Kept
- * case-insensitive because the DB has "BaByliss PRO" (brand) but names like
- * "BaByliss Pro Lo-Pro FX Compact …" — different casing, same identity.
- */
-export function fullProductName(product: { name: string; brand_name: string }): string {
-  const name = product.name;
-  const brand = product.brand_name;
-  return name.toLowerCase().startsWith(brand.toLowerCase() + ' ') ? name : `${brand} ${name}`;
-}
+// fullProductName lives in ./product-name.ts so client components can import
+// it without pulling in this file's server-only Supabase dependencies.
+export { fullProductName } from './product-name';
 
 function toBrand(b: any): Brand {
   return { id: b.id, name: b.name, slug: slugify(b.name) };

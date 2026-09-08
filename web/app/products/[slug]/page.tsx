@@ -10,6 +10,7 @@ import {
   getProductsByBrandId,
   getColourSiblings,
   slugify,
+  fullProductName,
 } from '@/lib/data';
 import { getUserAlertedProductIds } from '@/lib/alerts';
 import { exVat } from '@/lib/vat';
@@ -31,8 +32,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   const siteUrl = 'https://clipprr.co.uk';
   const url = `${siteUrl}/products/${product.slug}`;
-  const title = `${product.brand_name} ${product.name} — UK price comparison`;
-  const description = `Live prices for the ${product.brand_name} ${product.name} across every major UK retailer. Compare and find the cheapest deal today.`;
+  const fullName = fullProductName(product);
+  const title = `${fullName} — UK price comparison`;
+  const description = `Live prices for the ${fullName} across every major UK retailer. Compare and find the cheapest deal today.`;
 
   // og:image — preview when the product is shared on WhatsApp, Twitter, etc.
   // Falls back to the site's default share image when this product has none.
@@ -102,8 +104,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const productSchema = prices.length > 0 ? {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: `${product.brand_name} ${product.name}`,
-    description: product.description ?? `Live UK prices for the ${product.brand_name} ${product.name} across every major retailer.`,
+    name: fullProductName(product),
+    description: product.description ?? `Live UK prices for the ${fullProductName(product)} across every major retailer.`,
     image: productImages.length > 0 ? productImages : undefined,
     brand: { '@type': 'Brand', name: product.brand_name },
     category: product.category,

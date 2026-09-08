@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { fullProductName } from '@/lib/data';
 
 type Suggestion = {
   id: string;
@@ -61,11 +62,12 @@ export function SearchBar() {
   if (topMatch && query.length >= 2) {
     const qLower = query.toLowerCase();
     const brandLower = topMatch.brand_name.toLowerCase();
-    const fullLower = `${topMatch.brand_name} ${topMatch.name}`.toLowerCase();
+    const full = fullProductName(topMatch);
+    const fullLower = full.toLowerCase();
     if (brandLower.startsWith(qLower) && brandLower !== qLower) {
       ghostCompletion = topMatch.brand_name.slice(query.length);
     } else if (fullLower.startsWith(qLower)) {
-      ghostCompletion = `${topMatch.brand_name} ${topMatch.name}`.slice(query.length, query.length + 40);
+      ghostCompletion = full.slice(query.length, query.length + 40);
     }
   }
 

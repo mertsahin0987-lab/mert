@@ -186,7 +186,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           {/* Info + price comparison */}
           <div>
             <div className="text-xs font-bold uppercase tracking-widest text-accent mb-3">
-              {product.brand_name} · {product.category}
+              <Link href={`/brands/${slugify(product.brand_name)}`} className="hover:underline">
+                {product.brand_name}
+              </Link>
+              {' · '}
+              <Link href={`/categories/${slugify(product.category)}`} className="hover:underline">
+                {product.category}
+              </Link>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold leading-tight mb-4">
               {product.name}
